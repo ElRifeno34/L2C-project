@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.ipynb_checkpoints/
+# Confidential challenge data and generated results must stay outside this repo.
+*.pdf
+*.xlsx
+*.xls
+data/
+results/
+artifacts/

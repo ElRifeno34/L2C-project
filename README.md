@@ -79,3 +79,23 @@ Les bibliothèques seront choisies après inspection des données du challenge.
 L2C évaluera le projet selon le document fourni ; aucun score automatique n’est prévu sur HxBuddy. Les règles de comparaison et la validation seront alignées sur ce document.
 
 Ce README décrit le concept et le périmètre envisagé. Le prototype n’est pas encore implémenté. Le rapport sert d’aide à la vérification et les constats doivent être validés par les professionnels responsables.
+
+## Step 1: local dataset inspection
+
+Use Python 3.12 and install the dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Run the inventory from the repository root. Choose an output folder outside this repository and outside cloud-synced folders:
+
+```powershell
+python -m l2c.inspect --data-dir "C:\Users\Admin\Downloads\l2c-participants" --output "C:\Users\Admin\Documents\Codex\l2c-local\inventory.json"
+```
+
+The inventory records PDF page counts, file sizes, read errors and spreadsheet dimensions. Add `--sample-text` to measure first-page text availability locally. This is only a first-page heuristic, not a complete OCR assessment. Drawing text and spreadsheet cell values are never included in the inventory.
+
+Challenge documents must remain local: no cloud uploads or external AI APIs. Keep input PDFs, extracted JSON, crops, reports and model-derived confidential content outside this OneDrive repository. Git ignore rules are an additional safeguard, not a replacement for storing results elsewhere. Remove challenge data at the end of the event as required by the instructions.
+
+Current implementation: dataset inspection only. Extraction, matching and discrepancy reporting are not implemented yet.
