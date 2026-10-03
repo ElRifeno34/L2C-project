@@ -99,3 +99,28 @@ The inventory records PDF page counts, file sizes, read errors and spreadsheet d
 Challenge documents must remain local: no cloud uploads or external AI APIs. Keep input PDFs, extracted JSON, crops, reports and model-derived confidential content outside this OneDrive repository. Git ignore rules are an additional safeguard, not a replacement for storing results elsewhere. Remove challenge data at the end of the event as required by the instructions.
 
 Current implementation: dataset inspection only. Extraction, matching and discrepancy reporting are not implemented yet.
+
+## Local ML smoke benchmark
+
+The optional ML environment uses `requirements-ml.txt` plus CPU PyTorch and torchvision from the official PyTorch wheel index. It is separate from the basic inventory environment.
+
+`python -m l2c.prepare_samples --pdf <local-pdf> --page 37 --output-dir <local-private-folder>` prepares three image crops around native bar-designation candidates. `python -m l2c.ml_benchmark --backend florence --model-dir <downloaded-model-folder> --samples <local-private-folder>/samples.json --output <local-private-folder>/florence-results.json` runs Florence-2-base. Use `--backend paddle` for PP-OCRv5 mobile detection and recognition.
+
+Download model weights first, then run inference locally. Set HF_HOME and PADDLE_PDX_CACHE_HOME to local folders outside this repository. Raw samples and model outputs contain confidential content and must stay outside cloud-synced folders and Git.
+
+This three-crop test measures runtime and agreement with native PDF bar designations. It does not measure manually verified accuracy, element association, spacing/length extraction or discrepancy detection. Crop selection based on native text also biases the test toward text-bearing regions; broader validation is required.
+
+## Jupyter notebook
+
+`notebooks/demo_l2c.ipynb` demonstrates the implemented inventory, crop preparation and optional local ML benchmark. It explicitly marks extraction to Annex A, matching and PDF reporting as pending.
+
+From the repository root:
+
+```powershell
+python -m pip install -r requirements-notebook.txt
+python -m jupyterlab --config=jupyter_server_config.py
+```
+
+Open the notebook and select the matching Python kernel. Set its local DATA_DIR and OUTPUT_DIR. Optional inference requires CPU PyTorch and requirements-ml.txt in that same kernel environment, plus local model weights. ML execution is disabled by default.
+
+The supplied Jupyter server configuration clears outputs, execution counts, widget state and attachments on save. Always launch with that configuration. Outputs can contain confidential document data; other notebook editors may not apply this hook. Never put confidential text or images into notebook source cells. Keep data and results outside OneDrive and Git.
