@@ -1,0 +1,81 @@
+# L2C — Du plan aux dessins d’atelier
+
+## Idée du projet
+
+Un vérificateur d’armatures qui compare les plans de construction aux dessins d’atelier et relie chaque écart à sa preuve dans les documents.
+
+Le projet répond au challenge L2C : extraire les caractéristiques des armatures en JSON, associer les éléments entre les documents et produire un rapport PDF des écarts par feuille de plan. **Python est obligatoire.** Les données et les critères détaillés seront fournis au lancement.
+
+## Problème et utilisateurs
+
+La vérification manuelle exige de retrouver les éléments correspondants dans plusieurs feuilles et de comparer leurs caractéristiques. Un écart de diamètre, de quantité ou d’espacement peut être difficile à repérer.
+
+La solution vise les ingénieurs, les techniciens et les équipes chargées de vérifier les dessins d’atelier d’armature.
+
+## Fonctionnement proposé
+
+1. Importer les plans de construction et les dessins d’atelier.
+2. Extraire les textes, tableaux et annotations ; utiliser l’OCR lorsque nécessaire.
+3. Structurer les caractéristiques des armatures en JSON, avec leur feuille et leur position dans le document.
+4. Associer les éléments à partir des repères, axes, types et dimensions.
+5. Comparer les caractéristiques selon les règles du challenge.
+6. Générer un rapport PDF organisé par feuille de plan, avec les écarts et les extraits justificatifs.
+
+Les extractions et associations incertaines sont signalées pour validation. Une information illisible ou absente ne doit pas être présentée comme une non-conformité confirmée.
+
+## Données à extraire
+
+- Document, feuille et zone source.
+- Type d’élément structural et repère.
+- Diamètre et quantité des barres.
+- Espacement et dimensions.
+- Forme, ancrage et recouvrement lorsque disponibles.
+- Niveau de confiance de l’extraction et de l’association.
+
+Exemple illustratif de structure JSON :
+
+```json
+{
+  "document": "plan_construction.pdf",
+  "feuille": "S-201",
+  "element": { "type": "poutre", "repere": "P12" },
+  "armature": {
+    "diametre_mm": 20,
+    "quantite": null,
+    "espacement_mm": 150
+  },
+  "source": { "page": 3, "zone": [120, 240, 480, 360] },
+  "confiance": 0.92
+}
+```
+
+Les coordonnées de cet exemple sont illustratives ; leur unité et leur origine devront être définies dans le schéma final. Les unités et désignations d’armature seront adaptées aux documents fournis.
+
+## Première version visée
+
+Commencer par les poutres et vérifier le diamètre, la quantité, l’espacement et les dimensions. Démontrer toute la chaîne sur un périmètre limité : document source → JSON → association → comparaison → PDF.
+
+Exemple de constat : **Poutre P12 — plan : Ø20 à 150 mm ; dessin d’atelier : Ø15 à 200 mm**, accompagné des extraits des deux documents.
+
+## Approche technique envisagée
+
+- Python pour le pipeline d’analyse et de génération.
+- Extraction PDF et OCR selon la nature des fichiers.
+- IA pour interpréter les annotations et proposer des associations.
+- Règles explicites pour comparer les valeurs extraites.
+- Génération PDF pour présenter les résultats et leurs preuves.
+
+Les bibliothèques seront choisies après inspection des données du challenge.
+
+## Livrables attendus
+
+- Caractéristiques extraites en JSON.
+- Associations entre éléments des plans et dessins d’atelier.
+- Rapport PDF des écarts par feuille de plan.
+- Liste des cas nécessitant une validation humaine.
+
+## Évaluation et état du projet
+
+L2C évaluera le projet selon le document fourni ; aucun score automatique n’est prévu sur HxBuddy. Les règles de comparaison et la validation seront alignées sur ce document.
+
+Ce README décrit le concept et le périmètre envisagé. Le prototype n’est pas encore implémenté. Le rapport sert d’aide à la vérification et les constats doivent être validés par les professionnels responsables.
