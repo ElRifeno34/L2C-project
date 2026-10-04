@@ -79,7 +79,7 @@ Les bibliothèques seront choisies après inspection des données du challenge.
 
 L2C évaluera le projet selon le document fourni ; aucun score automatique n’est prévu sur HxBuddy. Les règles de comparaison et la validation seront alignées sur ce document.
 
-État réel : inventaire, OCR sur crops, association à partir de contexte fourni, validation Annexe A, matching JSON et rapport PDF sont implémentés. La chaîne automatique PDF de projet → extraction → association → JSON → PDF reste à intégrer. Le rapport sert d’aide à la vérification et les constats doivent être validés par les professionnels responsables.
+État réel : inventaire, OCR sur crops, association à partir de contexte fourni, validation Annexe A, matching JSON et rapport PDF sont implémentés. La CLI PDF de projet → extraction → association → JSON → PDF est disponible; la couverture de l’association automatique reste partielle. Le rapport sert d’aide à la vérification et les constats doivent être validés par les professionnels responsables.
 
 ## Step 1: local dataset inspection
 
@@ -99,7 +99,7 @@ The inventory records PDF page counts, file sizes, read errors and spreadsheet d
 
 Challenge documents must remain local: no cloud uploads or external AI APIs. Keep input PDFs, extracted JSON, crops, reports and model-derived confidential content outside this OneDrive repository. Git ignore rules are an additional safeguard, not a replacement for storing results elsewhere. Remove challenge data at the end of the event as required by the instructions.
 
-Implemented: inspection, local crop OCR, context-based association, Annex A validation, JSON matching and PDF generation. General automatic extraction/element-context detection and project-level integration remain pending.
+Implemented: inspection, local crop OCR, context-based association, Annex A validation, JSON matching and PDF generation. Project-level PDF integration is available through l2c.pipeline. General element/context detection remains incomplete; unresolved annotations are retained.
 
 ## Local ML smoke benchmark
 
@@ -113,7 +113,7 @@ This three-crop test measures runtime and agreement with native PDF bar designat
 
 ## Jupyter notebook
 
-`notebooks/demo_l2c.ipynb` demonstrates the implemented inventory, crop preparation and optional local ML benchmark. It explicitly marks extraction to Annex A, matching and PDF reporting as pending.
+`notebooks/demo_l2c.ipynb` demonstrates the implemented inventory, crop preparation and optional local ML benchmark. It also runs the project PDF-to-Annex-A-to-report pipeline and validates the resulting records. Coverage and unresolved cases are explicitly displayed.
 
 From the repository root:
 
@@ -155,7 +155,7 @@ Tests sans dépendance pytest : `python -m unittest discover -s tests -v`. Cette
 python src/reconcile_cli.py "<JSON Annexe A local>" --out "<dossier local hors Git et OneDrive>/rapport.pdf"
 ```
 
-La CLI valide les enregistrements avec Pydantic avant le matching et bloque les rapports dans Git/OneDrive. Elle prend actuellement un JSON, **pas les PDF d’un projet** : le point d’entrée complet exigé reste à réaliser. Exécuter chaque projet séparément.
+La CLI valide les enregistrements avec Pydantic avant le matching et bloque les rapports dans Git/OneDrive. Elle prend actuellement un JSON, **pas les PDF d’un projet** : pour l’entrée PDF complète, utiliser `python -m l2c.pipeline` ci-dessous. Exécuter chaque projet séparément.
 
 Les fixtures historiques `tests/sample_cases.json` sont synthétiques : certaines sources/coordonnées et listes vides ne respectent pas l’Annexe A. Pour tester uniquement le moteur de matching/PDF avec ces fixtures :
 
@@ -177,10 +177,71 @@ Regression checks: `python -m unittest discover -s tests -v` and `python tests/t
 ## Conformité et limites pour la remise
 
 - Le cœur Python, le JSON Annexe A validé et la génération PDF sont présents.
-- Le notebook explore les données et le benchmark OCR; il ne démontre pas encore tout le pipeline d’un projet.
+- Le notebook explore les données, le benchmark OCR et exécute la chaîne PDF → JSON → rapport sur un projet. Les associations non résolues restent visibles.
 - Le CLP L-13 est un échantillon avec association confirmée manuellement; il ne prouve pas la généralisation.
-- Les quatre projets de développement n’ont pas encore chacun un JSON complet et un rapport validé.
+- Un JSON/PDF peut être produit pour chacun des quatre projets; une sortie produite ne signifie pas une extraction exhaustive. Les compteurs de couverture doivent accompagner la remise.
 - L’extraction automatique, les cinq types d’éléments et le projet inconnu du jury doivent encore être validés. Les nombres du benchmark OCR ne constituent pas rappel/précision des non-conformités.
 - Les modèles sont préentraînés; aucun modèle n’a été entraîné/affiné dans ce dépôt. Les poids et scripts d’entraînement ne sont donc pas un livrable applicable à ce stade. Précharger les poids publics avant une démonstration sans réseau.
 - Une démonstration de 10 minutes doit inclure l’exécution sur le projet d’évaluation. La vidéo OCR seule ne satisfait pas cette exigence.
 - Les critères officiels sont : détection 30, extraction/JSON 20, rapport 15, qualité technique 15, généralisation 10, présentation 10. Aucun score jury n’est revendiqué.
+
+## Exécution complète sur les PDF d’un projet
+
+Depuis la racine du dépôt, environnement Python 3.12 :
+
+```powershell
+python -m pip install -r requirements.txt
+python -m l2c.pipeline --project-dir "C:\Users\Admin\Downloads\l2c-participants\CLP" --output-dir "C:\Users\Admin\Documents\L2C-results\CLP" --ocr off
+```
+
+Mode natif : rapide, sans poids ML; utile pour les PDF vectoriels et pour tester l’installation. Mode `auto` : OCR des pages pauvres en texte. Mode `hybrid` : mode auto et vérification de crops natifs par Paddle. La comparaison ML ne remplace pas automatiquement un texte natif en cas de désaccord; le cas est signalé pour revue.
+
+Installer l’environnement ML avant la démonstration (poids publics téléchargés sans documents) :
+
+```powershell
+python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+python -m pip install -r requirements-ml.txt
+python -m l2c.models --models-dir "C:\Users\Admin\Documents\L2C-models" --download
+python -m l2c.models --models-dir "C:\Users\Admin\Documents\L2C-models"
+python -m l2c.pipeline --project-dir "C:\Users\Admin\Downloads\l2c-participants\CLP" --output-dir "C:\Users\Admin\Documents\L2C-results\CLP" --ocr hybrid --models-dir "C:\Users\Admin\Documents\L2C-models"
+```
+
+L’inférence utilise les deux répertoires locaux `PP-OCRv5_mobile_det` et `PP-OCRv5_mobile_rec`. Aucun document n’est envoyé à un service externe. Le benchmark local élargi sur 12 crops de quatre projets a obtenu : Paddle 14/14 couples quantité–diamètre, 2,078 s/crop; Florence 4/14, 13,572 s/crop. Référence : texte PDF natif, crops sélectionnés à partir du natif; ni vérité terrain manuelle ni score de détection des non-conformités. Paddle est retenu pour cette machine. [Documentation officielle Paddle](https://www.paddleocr.ai/main/en/version3.x/pipeline_usage/OCR.html), [Florence-2-base](https://huggingface.co/microsoft/Florence-2-base).
+
+Sorties dans le dossier local choisi :
+
+- `annex-a.json` : enregistrements associés et validés, schéma Annexe A uniquement.
+- `annotations.json` : tous les callouts reconnus, même non associés.
+- `associations.json` : preuves, directions, incertitudes et références.
+- `coverage.json` : pages traitées et compteurs d’association.
+- `reconciliation.json` : résultats par feuille.
+- `run-summary.json` : durée, erreurs et limites.
+- `report.pdf` : comptes par feuille, écarts, couverture et références non résolues.
+
+Un code de sortie 2 signale les erreurs ou fichiers non classifiés; conserver run-summary.json pour diagnostic. Les sorties partielles ne doivent pas être présentées comme une vérification exhaustive. `--max-pages` sert uniquement aux essais rapides. Exécuter chaque projet séparément. Le classement des sources reconnaît `L2C_PLAN_STR*.pdf` et les PDF sous `DA`.
+
+### Association et corrections locales
+
+Associations automatiques : identifiant explicite dans le même segment texte, cadre de détail contenant un identifiant unique, et cas de semelles où marqueur fermé, axes de grille appariés et ligne TYPE du tableau sont tous reconnus. Les cas ambigus restent non résolus. Ces règles ne constituent pas un détecteur entraîné de tous les éléments structuraux.
+
+Un fichier `--context` local peut préciser des régions vérifiées par l’ingénieur. Exemple synthétique :
+
+```json
+{"regions": [{"source": "plan", "fichier": "L2C_PLAN_STR_demo.pdf", "page": 1,
+              "bbox": [100, 100, 180, 125], "element": "C-12", "type_element": "colonne",
+              "direction": "longitudinale", "instance_id": "NIVEAU-1:C-12"}]}
+```
+
+Les boîtes sont en points PDF, origine supérieure gauche; le fichier est relatif au dossier projet. Utiliser un `instance_id` commun aux deux sources seulement quand l’identité physique a été vérifiée. Le contexte est conservé hors Git/OneDrive. Les associations manuelles sont déclarées dans les preuves et ne doivent pas être présentées comme une prédiction automatique. Les directions sont utilisées pendant le matching sans ajouter de champs au JSON Annexe A.
+
+### Notebook et démonstration de 10 minutes
+
+Installer `requirements-notebook.txt`, lancer Jupyter avec la configuration fournie, puis Restart Kernel and Run All. Le notebook utilise CLP par défaut. Pour l’OCR, configurer `L2C_ML_PYTHON` si l’interpréteur est séparé et `L2C_OCR_MODELS_DIR`; pour des régions vérifiées, `L2C_CONTEXT_FILE`. Les résultats sont externes au dépôt.
+
+Déroulé : 1 minute problème/architecture; 2 minutes extraction et OCR local; 3 minutes exécution du pipeline; 2 minutes rapport, écarts et preuves; 2 minutes couverture, limites et questions. Le projet du jury doit être exécuté en direct. Les cinq types sont couverts par des tests synthétiques; leur généralisation sur les vrais plans n’est pas établie. Aucun rappel/précision jury n’est revendiqué.
+
+### Dépendances et remise
+
+PyMuPDF est utilisé via sa distribution open source AGPL; aucune licence commerciale n’est nécessaire pour exécuter ce prototype. Les autres dépendances et leurs licences doivent être conservées lors de la redistribution. Les modèles préentraînés n’ont pas été affinés : aucun script/poids d’entraînement d’équipe à remettre. Précharger les poids et vérifier l’installation du jury.
+
+Avant remise : exécuter les tests, valider les JSON, conserver les rapports/compteurs des quatre projets, réviser les cas non résolus prioritaires, puis commit/push du code uniquement. Ne jamais inclure les PDF, crops ou sorties confidentielles dans le dépôt public. Supprimer les données après l’événement selon les consignes.
