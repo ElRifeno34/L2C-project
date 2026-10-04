@@ -16,7 +16,7 @@ def main():
     parser.add_argument("--count", type=int, default=3)
     args = parser.parse_args()
     root = args.output_dir.resolve()
-    if root.is_relative_to(Path(__file__).resolve().parents[1]):
+    if root.is_relative_to(Path(__file__).resolve().parents[1]) or any('onedrive' in p.lower() for p in root.parts):
         parser.error("Store confidential samples outside the repository.")
     root.mkdir(parents=True, exist_ok=True)
     samples = []

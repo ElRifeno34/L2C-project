@@ -13,6 +13,7 @@ from l2c.associate import associate_annotations
 from l2c.extract import (apply_context, extract_annotations, identify_sheet,
                          framed_element_regions, associate_frames)
 from l2c.rebar import parse_callouts
+from l2c.footings import footing_context
 from src.match import match_and_reconcile
 from src.report_pdf import generate_pdf_report
 
@@ -120,6 +121,10 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
                                                                 page_index + 1, method)
                     annotations, elements = associate_frames(
                         annotations, elements, framed_element_regions(page, words))
+                    footing_elements, _ = footing_context(page, words, annotations)
+                    for element in footing_elements:
+                        if not any(e['element'] == element['element'] for e in elements):
+                            elements.append(element)
                     annotations, elements = apply_context(annotations, elements, context,
                                                           page.rect.width, page.rect.height)
                     if ocr == 'hybrid' and method == 'native':

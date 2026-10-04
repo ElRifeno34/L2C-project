@@ -75,5 +75,24 @@ class MatchingRegressionTests(unittest.TestCase):
         self.assertEqual(len(issues),1)
         self.assertIn('length (mm)',issues[0])
 
+    def test_reviewed_direction_prevents_swapped_totals_from_conforming(self):
+        records=[];contexts={}
+        for source, quantities in [('plan',[8,4]),('atelier',[4,8])]:
+            for i,q in enumerate(quantities):
+                r=record(source,'S-500',[bar(q,'25M')]);r['id']=source+str(i)
+                records.append(r);contexts[r['id']]={'direction':('longitudinale','transversale')[i]}
+        result=match_and_reconcile(records,contexts)['S-500']
+        self.assertEqual(result['non_conforme'],1)
+
+    def test_reviewed_instance_allows_annotations_on_multiple_pages(self):
+        records=[];contexts={}
+        for source in ('plan','atelier'):
+            for page in (1,2):
+                r=record(source,'S-500',[bar(4,'25M')],page);r['id']=source+str(page)
+                records.append(r);contexts[r['id']]={'instance_id':'unique-reviewed-column'}
+        result=match_and_reconcile(records,contexts)['S-500']
+        self.assertEqual(result['conforme'],1)
+        self.assertEqual(result['a_verifier'],0)
+
 if __name__ == '__main__':
     unittest.main()

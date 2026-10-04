@@ -74,6 +74,37 @@ class ProjectPipelineTests(unittest.TestCase):
                 self.assertAlmostEqual(records[0]['x'],(box.x0+box.x1)/2)
                 self.assertAlmostEqual(records[0]['y'],(box.y0+box.y1)/2)
 
+    def test_named_detail_frame_association(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);project=root/'example';project.mkdir()
+            doc=fitz.open();p=doc.new_page(width=600,height=800)
+            p.draw_rect(fitz.Rect(50,50,500,600))
+            p.insert_text((80,100),'P-12')
+            p.insert_text((350,500),'8-25M')
+            doc.save(project/'L2C_PLAN_STR_example.pdf');doc.close()
+            summary=run_project(project,root/'output')
+            self.assertEqual(summary['record_count'],1)
+            self.assertEqual(summary['unresolved_annotations'],0)
+
+    def test_vector_footing_marker_and_grid_links_to_schedule(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);project=root/'example';project.mkdir()
+            doc=fitz.open();p=doc.new_page(width=600,height=800)
+            for text,x,y in [('13',300,60),('13',300,740),('L',60,300),('L',540,300)]:
+                p.draw_circle(fitz.Point(x,y),10)
+                p.insert_text((x-5,y+3),text,fontsize=9)
+            p.draw_rect(fitz.Rect(250,250,350,350))
+            p.draw_polyline([fitz.Point(x,y) for x,y in [(321,322),(336,322),(342,332),(336,342),(321,342),(315,332)]],closePath=True)
+            p.insert_text((324,335),'C',fontsize=9)
+            p.draw_rect(fitz.Rect(40,620,550,710))
+            p.insert_text((60,640),'NOMENCLATURE DES SEMELLES')
+            p.insert_text((60,670),'TYPE C')
+            p.insert_text((310,670),'9-25M')
+            p.insert_text((430,670),'9-25M')
+            doc.save(project/'L2C_PLAN_STR_example.pdf');doc.close()
+            summary=run_project(project,root/'output')
+            self.assertEqual(summary['record_count'],2)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -89,6 +89,14 @@ def extract_annotations(words, source, filename, sheet, page, method='native'):
 def apply_context(annotations, elements, context, width, height):
     """Optional reviewer regions. Context is an external local file, never GT."""
     for a in annotations:
+        matching = [item for item in context
+                    if (item['source'], item['fichier'], item['page']) == (a['source'], a['fichier'], a['page'])
+                    and item['bbox'][0] <= a['x'] <= item['bbox'][2]
+                    and item['bbox'][1] <= a['y'] <= item['bbox'][3]]
+        identities = {(item['element'], item['type_element'], item.get('direction'), item.get('instance_id'))
+                      for item in matching}
+        if len(identities) > 1:
+            raise ValueError('Conflicting reviewer regions overlap an annotation.')
         for item in context:
             if (item['source'], item['fichier'], item['page']) != (a['source'], a['fichier'], a['page']):
                 continue

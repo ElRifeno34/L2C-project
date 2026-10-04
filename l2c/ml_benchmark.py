@@ -27,7 +27,7 @@ def main():
     parser.add_argument("--model-dir", type=Path,
                         help="Downloaded Florence model directory; enables offline loading.")
     args = parser.parse_args()
-    if args.output.resolve().is_relative_to(Path(__file__).resolve().parents[1]):
+    if args.output.resolve().is_relative_to(Path(__file__).resolve().parents[1]) or any('onedrive' in p.lower() for p in args.output.resolve().parts):
         parser.error("Save results outside the repository and cloud-synced folders.")
     samples = json.loads(args.samples.read_text(encoding="utf-8"))
     started = time.perf_counter()
