@@ -65,7 +65,8 @@ def main():
             model_id, trust_remote_code=True, torch_dtype=torch.float32,
             attn_implementation="eager", low_cpu_mem_usage=True,
             use_safetensors=True, local_files_only=bool(args.model_dir)).eval()
-        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        processor = AutoProcessor.from_pretrained(
+            model_id, trust_remote_code=True, local_files_only=bool(args.model_dir))
         torch.set_num_threads(2)
     load_seconds = time.perf_counter() - started
     results = []

@@ -17,6 +17,7 @@ issues (list of short sentences), x, y, page, fichier, plan, shop.
 """
  
 import re
+from collections import Counter
 import warnings
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -107,7 +108,8 @@ def _fmt(values: List[Any]) -> str:
  
 def _total_quantity(bars: List[Dict[str, Any]]) -> List[float]:
     quantities = [_to_number(b.get("quantite")) for b in bars]
-    quantities = [q for q in quantities if q is not None]
+    if any(q is None for q in quantities):
+        return []
     return [sum(quantities)] if quantities else []
  
  
@@ -131,15 +133,12 @@ def _numbers_close(tolerance: float) -> Callable[[List[float], List[float]], boo
  
  
 def _compare(label: str, plan_vals: List[Any], shop_vals: List[Any], equal) -> Optional[str]:
-    """Return a sentence describing the difference, or None if all is fine.
-    A value present on one side only IS reported: a missed error costs more
-    than a false alarm."""
+    """Describe a difference between known values. Missing values need review."""
     if not plan_vals and not shop_vals:
         return None
-    if not plan_vals:
-        return f"{label}: no value on plan (shop = {_fmt(shop_vals)})"
-    if not shop_vals:
-        return f"{label}: no value on shop drawing (plan = {_fmt(plan_vals)})"
+    if not plan_vals or not shop_vals:
+        # Missing extraction evidence is recorded separately for review.
+        return None
     if equal(plan_vals, shop_vals):
         return None
     return f"{label}: plan = {_fmt(plan_vals)} vs shop = {_fmt(shop_vals)}"
@@ -157,9 +156,53 @@ def compare_armature(plan_bars, shop_bars) -> List[str]:
     plan_groups = _group_bars(plan_bars)
     shop_groups = _group_bars(shop_bars)
  
-    if not plan_groups and not shop_groups:
-        return ["No reinforcement data extracted on either side (cannot verify)"]
- 
+    if not plan_groups or not shop_groups:
+        return []
+
+    # Keep quantities attached to properties, including repeated marks.
+    # A single property group still uses the detailed field comparison below.
+    def signature(bar):
+        return (normalize_name(bar.get("diametre")),
+                _to_number(bar.get("espacement_mm")),
+                _to_number(bar.get("longueur_mm")))
+    grouped_issues = []
+    for mark in sorted(set(plan_groups) & set(shop_groups)):
+        left_bars, right_bars = plan_groups[mark], shop_groups[mark]
+        signatures = {signature(b) for b in left_bars + right_bars}
+        if len(signatures) <= 1:
+            continue
+        if len({signature(b) for b in left_bars}) == len({signature(b) for b in right_bars}) == 1:
+            # Homogeneous groups have a direct attribute comparison, even if
+            # they contain several split quantity rows.
+            continue
+        if any(_to_number(b.get("quantite")) is None or not b.get("diametre")
+               for b in left_bars + right_bars):
+            continue
+        # A property missing on one side cannot establish a difference.
+        if any(any(b.get(field) is None for b in left_bars) !=
+               any(b.get(field) is None for b in right_bars)
+               for field in ("espacement_mm", "longueur_mm")):
+            continue
+        def quantities(bars):
+            totals = Counter()
+            for bar in bars:
+                totals[signature(bar)] += _to_number(bar.get("quantite")) or 0
+            return totals
+        left, right = quantities(left_bars), quantities(right_bars)
+        for sig in sorted(signatures, key=repr):
+            if left.get(sig) != right.get(sig):
+                diameter, spacing, length = sig
+                properties = [diameter]
+                if spacing is not None:
+                    properties.append(f"spacing {spacing:g} mm")
+                if length is not None:
+                    properties.append(f"length {length:g} mm")
+                grouped_issues.append(
+                    f"Bar {mark or '(no mark)'} [{'; '.join(properties)}]: quantity on plan = "
+                    f"{left.get(sig, 'missing')} vs shop = {right.get(sig, 'missing')}")
+        plan_groups.pop(mark)
+        shop_groups.pop(mark)
+
     checks = [
         ("quantity", _total_quantity, _equal_exact),
         ("diameter", _diameters, _equal_exact),
@@ -167,7 +210,7 @@ def compare_armature(plan_bars, shop_bars) -> List[str]:
         ("length (mm)", lambda bars: _numbers(bars, "longueur_mm"), _numbers_close(LENGTH_TOLERANCE_MM)),
     ]
  
-    issues: List[str] = []
+    issues: List[str] = list(grouped_issues)
     for mark in sorted(set(plan_groups) | set(shop_groups)):
         first_bar = (plan_groups.get(mark) or shop_groups.get(mark))[0]
         name = str(first_bar.get("repere") or "").strip() or "(no mark)"
@@ -182,6 +225,28 @@ def compare_armature(plan_bars, shop_bars) -> List[str]:
             if problem:
                 issues.append(f"Bar {name} - {problem}")
     return issues
+
+
+def reinforcement_review_reasons(plan_bars, shop_bars) -> List[str]:
+    """Missing evidence cannot prove either conformity or non-conformity."""
+    if not plan_bars or not shop_bars:
+        return ["Insufficient reinforcement extraction on one or both sides"]
+    reasons = []
+    fields = ("diametre", "quantite", "espacement_mm", "longueur_mm")
+    if any(all(b.get(f) is None for f in fields) for b in plan_bars + shop_bars):
+        reasons.append("A reinforcement annotation has no comparable values")
+    plans, shops = _group_bars(plan_bars), _group_bars(shop_bars)
+    for mark in set(plans) & set(shops):
+        left, right = plans[mark], shops[mark]
+        for field in fields:
+            missing_left = any(b.get(field) is None for b in left)
+            missing_right = any(b.get(field) is None for b in right)
+            if missing_left != missing_right:
+                reasons.append(f"Bar {mark or '(no mark)'}: incomplete {field} extraction")
+        if len(left) > 1 or len(right) > 1:
+            if any(b.get("quantite") is None for b in left + right):
+                reasons.append(f"Bar {mark or '(no mark)'}: unknown quantities prevent aggregation")
+    return reasons
  
  
 # ------------------------------------------------------------ result build --
@@ -216,7 +281,7 @@ def _entry(plan, shop, status: str, issues: List[str]) -> Dict[str, Any]:
  
  
 def _new_sheet_stats() -> Dict[str, Any]:
-    return {"conforme": 0, "non_conforme": 0, "manquant": 0, "ajoute": 0, "discrepancies": []}
+    return {"conforme": 0, "non_conforme": 0, "manquant": 0, "ajoute": 0, "a_verifier": 0, "discrepancies": []}
  
  
 def match_and_reconcile(records: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -226,6 +291,30 @@ def match_and_reconcile(records: List[Dict[str, Any]]) -> Dict[str, Any]:
     for key in sorted(set(plans) | set(shops)):
         plan_records = plans.get(key, [])
         shop_records = shops.get(key, [])
+        # Annex A has no shared level/instance identifier. Do not guess a
+        # pairing when a name occurs in multiple document locations.
+        def document_locations(items):
+            return {(r.get("fichier"), r.get("feuillet"), r.get("page")) for r in items}
+        if len(document_locations(plan_records)) > 1 or len(document_locations(shop_records)) > 1:
+            review_records = plan_records or shop_records
+            by_location = defaultdict(list)
+            for record in review_records:
+                by_location[(record.get("fichier"), record.get("feuillet"), record.get("page"))].append(record)
+            for instance in by_location.values():
+                ref = merge_group(instance)
+                sheet = ref.get("feuillet") or "UNKNOWN"
+                status = "À VÉRIFIER" if plan_records and shop_records else "MANQUANT" if plan_records else "AJOUTÉ"
+                if status == "À VÉRIFIER":
+                    results[sheet]["a_verifier"] += 1
+                    reason = "Repeated element identifier across document locations; explicit instance association required"
+                else:
+                    results[sheet]["non_conforme"] += 1
+                    results[sheet]["manquant" if plan_records else "ajoute"] += 1
+                    reason = "Element missing from shop drawings" if plan_records else "Element added in shop drawings"
+                results[sheet]["discrepancies"].append(_entry(
+                    ref if plan_records else None, None if plan_records else ref,
+                    status, [reason]))
+            continue
         plan = merge_group(plan_records) if plan_records else None
         shop = merge_group(shop_records) if shop_records else None
  
@@ -251,7 +340,14 @@ def match_and_reconcile(records: List[Dict[str, Any]]) -> Dict[str, Any]:
  
         # Case 3: on both sides -> compare the bars
         sheet = plan.get("feuillet") or "UNKNOWN"
+        review = reinforcement_review_reasons(plan.get("armature"), shop.get("armature"))
         issues = compare_armature(plan.get("armature"), shop.get("armature"))
+        if review and not issues:
+            results[sheet]["a_verifier"] += 1
+            results[sheet]["discrepancies"].append(_entry(
+                plan, shop, "À VÉRIFIER", review))
+            continue
+        issues.extend(f"Requires review: {reason}" for reason in review)
  
         if len(plan_records) > 1 or len(shop_records) > 1:
             note = (f"Note: {len(plan_records)} plan record(s) and {len(shop_records)} "

@@ -16,6 +16,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 STATUS_COLORS = {
+    "À VÉRIFIER": "#975a16",
     "NON-CONFORME": "#9b2c2c",
     "MANQUANT": "#c53030",
     "AJOUTÉ": "#c05621",
@@ -65,17 +66,18 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
     story.append(Paragraph("1. Summary by Plan Sheet", styles["Heading2"]))
     story.append(Spacer(1, 5))
 
-    summary = [["Plan Sheet", "Conformities", "Non-Conformities", "of which Missing", "of which Added"]]
-    totals = {"conforme": 0, "non_conforme": 0, "manquant": 0, "ajoute": 0}
+    summary = [["Plan Sheet", "Conformities", "Non-Conformities", "of which Missing", "of which Added", "To review"]]
+    totals = {"conforme": 0, "non_conforme": 0, "manquant": 0, "ajoute": 0, "a_verifier": 0}
     for sheet, stats in reconciled_data.items():
         summary.append([sheet, str(stats["conforme"]), str(stats["non_conforme"]),
-                        str(stats["manquant"]), str(stats["ajoute"])])
+                        str(stats["manquant"]), str(stats["ajoute"]), str(stats.get("a_verifier", 0))])
         for name in totals:
-            totals[name] += stats[name]
+            totals[name] += stats.get(name, 0)
     summary.append(["TOTAL", str(totals["conforme"]), str(totals["non_conforme"]),
-                    str(totals["manquant"]), str(totals["ajoute"])])
+                    str(totals["manquant"]), str(totals["ajoute"]), str(totals["a_verifier"])])
 
-    summary_table = Table(summary, colWidths=[120, 100, 110, 105, 105], repeatRows=1)
+    summary_table = Table([[Paragraph(escape(str(cell)), small) for cell in row] for row in summary],
+                          colWidths=[80, 80, 100, 100, 100, 80], repeatRows=1)
     summary_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),

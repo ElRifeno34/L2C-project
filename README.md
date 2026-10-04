@@ -32,24 +32,25 @@ Les extractions et associations incertaines sont signalées pour validation. Une
 - Forme, ancrage et recouvrement lorsque disponibles.
 - Niveau de confiance de l’extraction et de l’association.
 
-Exemple illustratif de structure JSON :
+Exemple conforme à la structure de l’annexe A (valeurs synthétiques) :
 
 ```json
 {
-  "document": "plan_construction.pdf",
-  "feuille": "S-201",
-  "element": { "type": "poutre", "repere": "P12" },
-  "armature": {
-    "diametre_mm": 20,
-    "quantite": null,
-    "espacement_mm": 150
-  },
-  "source": { "page": 3, "zone": [120, 240, 480, 360] },
-  "confiance": 0.92
+  "id": "S-500_C-12_plan",
+  "source": "plan",
+  "fichier": "Projet1_S-500.pdf",
+  "feuillet": "S-500",
+  "page": 1,
+  "x": 412.5,
+  "y": 318.0,
+  "type_element": "colonne",
+  "element": "C-12",
+  "armature": [{"repere": "C12-1", "diametre": "25M", "quantite": 8,
+                "espacement_mm": null, "longueur_mm": 3600}]
 }
 ```
 
-Les coordonnées de cet exemple sont illustratives ; leur unité et leur origine devront être définies dans le schéma final. Les unités et désignations d’armature seront adaptées aux documents fournis.
+X/Y sont en points PDF (1/72 po), depuis le coin supérieur gauche de la page, au centre de l’annotation. Les attributs inconnus restent `null`. Notre convention locale pour les dessins d’atelier est `source="atelier"`. Les preuves, directions et incertitudes sont conservées séparément du JSON Annexe A.
 
 ## Première version visée
 
@@ -78,7 +79,7 @@ Les bibliothèques seront choisies après inspection des données du challenge.
 
 L2C évaluera le projet selon le document fourni ; aucun score automatique n’est prévu sur HxBuddy. Les règles de comparaison et la validation seront alignées sur ce document.
 
-Ce README décrit le concept et le périmètre envisagé. Le prototype n’est pas encore implémenté. Le rapport sert d’aide à la vérification et les constats doivent être validés par les professionnels responsables.
+État réel : inventaire, OCR sur crops, association à partir de contexte fourni, validation Annexe A, matching JSON et rapport PDF sont implémentés. La chaîne automatique PDF de projet → extraction → association → JSON → PDF reste à intégrer. Le rapport sert d’aide à la vérification et les constats doivent être validés par les professionnels responsables.
 
 ## Step 1: local dataset inspection
 
@@ -98,7 +99,7 @@ The inventory records PDF page counts, file sizes, read errors and spreadsheet d
 
 Challenge documents must remain local: no cloud uploads or external AI APIs. Keep input PDFs, extracted JSON, crops, reports and model-derived confidential content outside this OneDrive repository. Git ignore rules are an additional safeguard, not a replacement for storing results elsewhere. Remove challenge data at the end of the event as required by the instructions.
 
-Current implementation: dataset inspection only. Extraction, matching and discrepancy reporting are not implemented yet.
+Implemented: inspection, local crop OCR, context-based association, Annex A validation, JSON matching and PDF generation. General automatic extraction/element-context detection and project-level integration remain pending.
 
 ## Local ML smoke benchmark
 
@@ -121,7 +122,7 @@ python -m pip install -r requirements-notebook.txt
 python -m jupyterlab --config=jupyter_server_config.py
 ```
 
-Open the notebook and select the matching Python kernel. Set its local DATA_DIR and OUTPUT_DIR. Optional inference requires CPU PyTorch and requirements-ml.txt in that same kernel environment, plus local model weights. ML execution is disabled by default.
+Open the notebook and select the matching Python kernel. Set its local DATA_DIR and OUTPUT_DIR. Optional inference requires CPU PyTorch and requirements-ml.txt in the kernel environment (or set L2C_ML_PYTHON to a separate interpreter). Paddle is the default benchmark backend; set L2C_ML_BACKENDS=paddle,florence and L2C_FLORENCE_MODEL_DIR for an optional Florence comparison. ML execution is disabled by default.
 
 The supplied Jupyter server configuration clears outputs, execution counts, widget state and attachments on save. Always launch with that configuration. Outputs can contain confidential document data; other notebook editors may not apply this hook. Never put confidential text or images into notebook source cells. Keep data and results outside OneDrive and Git.
 
@@ -145,7 +146,41 @@ Paddle benchmark outputs now retain OCR polygons and recognition scores locally.
 
 Validation: five synthetic tests cover page isolation, overlapping regions, conflicting references, shared schedules and external leaders. The CLP L-13 sample additionally verifies four schedule annotations with manually confirmed marker relationships. These checks do not establish dataset-wide association accuracy.
 
-If you want to test the code use: python -m pytest tests/
+Tests sans dépendance pytest : `python -m unittest discover -s tests -v`. Cette commande découvre aussi les tests de fixtures du matching.
 
 
-python src/reconcile_cli.py records.json --out report.pdf ; this command test the code with mock data and produce a pdf file called report.pdf
+## CLI de comparaison disponible
+
+```powershell
+python src/reconcile_cli.py "<JSON Annexe A local>" --out "<dossier local hors Git et OneDrive>/rapport.pdf"
+```
+
+La CLI valide les enregistrements avec Pydantic avant le matching et bloque les rapports dans Git/OneDrive. Elle prend actuellement un JSON, **pas les PDF d’un projet** : le point d’entrée complet exigé reste à réaliser. Exécuter chaque projet séparément.
+
+Les fixtures historiques `tests/sample_cases.json` sont synthétiques : certaines sources/coordonnées et listes vides ne respectent pas l’Annexe A. Pour tester uniquement le moteur de matching/PDF avec ces fixtures :
+
+```powershell
+python src/reconcile_cli.py tests/sample_cases.json --mock-input --out "<dossier local hors Git et OneDrive>/mock-report.pdf"
+```
+
+Ne pas utiliser `--mock-input` pour les données réelles. Les compteurs `manquant` et `ajoute` sont inclus dans `non_conforme`; ils ne doivent pas être additionnés à nouveau. `a_verifier` est un compteur supplémentaire de cas incertains, séparé des quatre catégories demandées, pas une conformité ni une non-conformité confirmée.
+
+
+### Matching safeguards
+
+Reinforcement, including repeated bar marks, is compared with quantities attached to diameter, spacing and length; reordered or split identical groups remain equivalent. Missing extraction, entirely unknown bar values and uncertain quantity aggregation produce `À VÉRIFIER`, counted under `a_verifier` in reconciliation output and separately in the PDF. Annex A input fields are unchanged.
+
+Repeated element names in multiple file/sheet/page locations are not merged automatically: each plan location is flagged for explicit instance association. This conservative fallback does not infer floors or match by sheet number, since plan and workshop sheets can differ. Multiple annotations for a name within one document page still merge; distinguishing separate instances on that page requires upstream association. Longitudinal/transverse context is not available in Annex A and is not inferred by the matcher.
+
+Regression checks: `python -m unittest discover -s tests -v` and `python tests/test_match_cases.py`.
+
+## Conformité et limites pour la remise
+
+- Le cœur Python, le JSON Annexe A validé et la génération PDF sont présents.
+- Le notebook explore les données et le benchmark OCR; il ne démontre pas encore tout le pipeline d’un projet.
+- Le CLP L-13 est un échantillon avec association confirmée manuellement; il ne prouve pas la généralisation.
+- Les quatre projets de développement n’ont pas encore chacun un JSON complet et un rapport validé.
+- L’extraction automatique, les cinq types d’éléments et le projet inconnu du jury doivent encore être validés. Les nombres du benchmark OCR ne constituent pas rappel/précision des non-conformités.
+- Les modèles sont préentraînés; aucun modèle n’a été entraîné/affiné dans ce dépôt. Les poids et scripts d’entraînement ne sont donc pas un livrable applicable à ce stade. Précharger les poids publics avant une démonstration sans réseau.
+- Une démonstration de 10 minutes doit inclure l’exécution sur le projet d’évaluation. La vidéo OCR seule ne satisfait pas cette exigence.
+- Les critères officiels sont : détection 30, extraction/JSON 20, rapport 15, qualité technique 15, généralisation 10, présentation 10. Aucun score jury n’est revendiqué.
