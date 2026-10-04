@@ -146,3 +146,6 @@ Paddle benchmark outputs now retain OCR polygons and recognition scores locally.
 Validation: five synthetic tests cover page isolation, overlapping regions, conflicting references, shared schedules and external leaders. The CLP L-13 sample additionally verifies four schedule annotations with manually confirmed marker relationships. These checks do not establish dataset-wide association accuracy.
 
 If you want to test the code use: python -m pytest tests/
+
+
+python src/reconcile_cli.py records.json --out report.pdf ; this command test the code with mock data and produce a pdf file called report.pdf
