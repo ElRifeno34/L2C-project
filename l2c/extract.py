@@ -123,9 +123,12 @@ def framed_element_regions(page, words):
     labelled_words = [(w, labels) for w, labels in labelled_words if labels]
     for path in page.get_drawings():
         items = path['items']
-        if len(items) != 1 or items[0][0] != 're':
+        closed_lines = (len(items) == 4 and all(i[0] == 'l' for i in items) and
+                        abs(items[0][1].x - items[-1][2].x) < 1 and
+                        abs(items[0][1].y - items[-1][2].y) < 1)
+        if not ((len(items) == 1 and items[0][0] == 're') or closed_lines):
             continue
-        box = items[0][1] * page.rotation_matrix
+        box = path['rect'] * page.rotation_matrix
         if box.width < 70 or box.height < 35 or box.width > page.rect.width * .9 or box.height > page.rect.height * .9:
             continue
         labels = {}

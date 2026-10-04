@@ -20,13 +20,17 @@ def footing_context(page, words, annotations):
     for path in drawings:
         items = path['items']
         box = path['rect'] * page.rotation_matrix
+        line_closed = bool(items and all(i[0] == 'l' for i in items) and
+                           abs(items[0][1].x - items[-1][2].x) < 1 and
+                           abs(items[0][1].y - items[-1][2].y) < 1)
         if ((len(items) == 1 and items[0][0] == 're') or
-                (len(items) == 4 and path.get('closePath') and all(i[0] == 'l' for i in items))):
+                (len(items) == 4 and (path.get('closePath') or line_closed) and all(i[0] == 'l' for i in items))):
             rectangles.append(box)
         if not (4 <= box.width <= 45 and 4 <= box.height <= 45):
             continue
-        circular = sum(i[0] == 'c' for i in items) >= 3
-        polygon = len(items) >= 5 and all(i[0] == 'l' for i in items)
+        circular = (sum(i[0] == 'c' for i in items) >= 3 or
+                    (line_closed and len(items) >= 12 and .7 < box.width / box.height < 1.4))
+        polygon = 5 <= len(items) <= 8 and all(i[0] == 'l' for i in items)
         if not (circular or polygon):
             continue
         labels = [w for w in words if contains(box, (w['x0'] + w['x1']) / 2,
