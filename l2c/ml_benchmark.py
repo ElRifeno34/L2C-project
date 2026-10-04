@@ -71,12 +71,30 @@ def main():
     results = []
     for index, sample in enumerate(samples):
         tick = time.perf_counter()
+        ocr_annotations = []
         if args.backend == "paddle":
             predictions = list(model.predict(sample["file"]))
             data = predictions[0].json
             if isinstance(data, str):
                 data = json.loads(data)
-            text = " ".join(data.get("res", data).get("rec_texts", []))
+            payload = data.get("res", data)
+            text = " ".join(payload.get("rec_texts", []))
+            for label, polygon, score in zip(payload.get("rec_texts", []),
+                                             payload.get("rec_polys", []),
+                                             payload.get("rec_scores", [])):
+                entry = {"text": label, "polygon_crop_pixels": polygon,
+                         "recognition_score": float(score)}
+                if "render_scale" in sample and "crop_origin_pixels" in sample:
+                    scale = sample["render_scale"]
+                    ox, oy = sample["crop_origin_pixels"]
+                    points = [[(p[0]+ox)/scale, (p[1]+oy)/scale] for p in polygon]
+                    entry["bbox_pdf_points"] = [min(p[0] for p in points), min(p[1] for p in points),
+                                                max(p[0] for p in points), max(p[1] for p in points)]
+                    box = entry["bbox_pdf_points"]
+                    entry["centre_pdf_points"] = [(box[0]+box[2])/2, (box[1]+box[3])/2]
+                else:
+                    entry["coordinate_status"] = "rerun prepare_samples to obtain the crop transform"
+                ocr_annotations.append(entry)
         else:
             from PIL import Image
             image = Image.open(sample["file"]).convert("RGB")
@@ -101,9 +119,10 @@ def main():
                   "matching_quantity_pairs": len(predicted_pairs & reference_pairs),
                   "reference_quantity_pairs": len(reference_pairs),
                   "predicted_quantity_pairs": len(predicted_pairs)}
+        result["ocr_annotations"] = ocr_annotations
         results.append(result)
         print(json.dumps({k: v for k, v in result.items()
-                          if k not in ("text", "native_bar_tokens", "predicted_bar_tokens")}), flush=True)
+                          if k not in ("text", "native_bar_tokens", "predicted_bar_tokens", "ocr_annotations")}), flush=True)
     report = {"backend": args.backend, "load_seconds": round(load_seconds, 3),
               "results": results,
               "metric_note": "Agreement with native PDF text, not manually verified accuracy."}

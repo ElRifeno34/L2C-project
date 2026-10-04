@@ -25,6 +25,12 @@ def main():
             parser.error("Page is outside the document.")
         page = pdf.pages[args.page - 1]
         words = page.extract_words()
+        origin_x, origin_y = page.bbox[:2]
+        for word in words:
+            word["x0"] -= origin_x
+            word["x1"] -= origin_x
+            word["top"] -= origin_y
+            word["bottom"] -= origin_y
         with pypdfium2.PdfDocument(args.pdf) as document:
             rendered_page = document[args.page - 1]
             bitmap = rendered_page.render(scale=2)
@@ -46,7 +52,11 @@ def main():
                           w["x1"] <= box[2] and box[1] <= w["top"] and
                           w["bottom"] <= box[3]]
                 samples.append({"file": str(target), "page": args.page,
-                                "box": box, "native_text": native})
+                                "box": box, "native_text": native,
+                                "render_scale": 2,
+                                "crop_origin_pixels": [int(box[0]*2), int(box[1]*2)],
+                                "page_size_points": [page.width, page.height],
+                                "coordinate_system": "displayed PDF page, upper-left origin, points"})
             image.close()
             bitmap.close()
             rendered_page.close()

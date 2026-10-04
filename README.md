@@ -124,3 +124,23 @@ python -m jupyterlab --config=jupyter_server_config.py
 Open the notebook and select the matching Python kernel. Set its local DATA_DIR and OUTPUT_DIR. Optional inference requires CPU PyTorch and requirements-ml.txt in that same kernel environment, plus local model weights. ML execution is disabled by default.
 
 The supplied Jupyter server configuration clears outputs, execution counts, widget state and attachments on save. Always launch with that configuration. Outputs can contain confidential document data; other notebook editors may not apply this hook. Never put confidential text or images into notebook source cells. Keep data and results outside OneDrive and Git.
+
+## Annotation-to-element association
+
+`l2c.associate.associate_annotations(annotations, elements)` associates reinforcement annotations within a source document. It does not match plans to shop drawings or detect discrepancies.
+
+Annotations supply Annex A source fields, a unique annotation id, parsed armature, x/y, and optionally text, bbox, element_ref, leader_endpoint, schedule_ref and direction. Elements supply the same source/page fields, element and type_element, plus optional bbox and schedule_ref. Coordinates must be PDF points relative to the displayed page's upper-left corner. Source file, sheet and page must agree before an association is considered.
+
+Supported evidence: exact element identifiers, leader endpoints inside element regions, annotation containment and shared marker-to-schedule references. Conflicting candidates become ambiguous; absent evidence becomes unresolved. Shared schedules can intentionally produce records for several elements. A schedule_ref must be unique to its table/type context, not merely a letter such as C. This module consumes detected or manually verified context; automatic marker, grid and leader detection is not implemented. Heuristics have not been calibrated into probability scores.
+
+Run on a local input JSON containing annotations and elements:
+
+```powershell
+python -m l2c.associate --input "<local-input.json>" --output-dir "<local-output-folder>"
+```
+
+Outputs are annex-a.json and associations.json. The latter preserves unresolved cases, evidence, direction and provenance. The downstream consumer must avoid counting shared schedule references as independent quantities. Unknown armature attributes remain null.
+
+Paddle benchmark outputs now retain OCR polygons and recognition scores locally. Rerun prepare_samples to include crop transforms; new Paddle results map those polygons into PDF points. This is not full-page extraction or automatic structural-element detection.
+
+Validation: five synthetic tests cover page isolation, overlapping regions, conflicting references, shared schedules and external leaders. The CLP L-13 sample additionally verifies four schedule annotations with manually confirmed marker relationships. These checks do not establish dataset-wide association accuracy.
