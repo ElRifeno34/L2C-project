@@ -1,13 +1,14 @@
 """Conservative vector footing markers -> paired grid axes -> schedule rows."""
 import re
 from collections import defaultdict
+from l2c.geometry import closed_outlines
 
 
 def contains(box, x, y):
     return box.x0 <= x <= box.x1 and box.y0 <= y <= box.y1
 
 
-def footing_context(page, words, annotations):
+def footing_context(page, words, annotations, drawings=None, outlines=None):
     """Only explicit paired axis bubbles and closed footing frames qualify.
 
     No nearest grid guessing and no project/location/expected-value constants.
@@ -15,27 +16,31 @@ def footing_context(page, words, annotations):
     """
     if not any('SEMELLE' in w['text'].upper() for w in words):
         return [], {}
-    drawings = page.get_drawings()
+    if drawings is None:
+        drawings = page.get_drawings()
+    if outlines is None:
+        outlines = closed_outlines(drawings, page.rotation_matrix)
     rectangles, bubbles, markers = [], [], []
+    label_words = [w for w in words if re.fullmatch(r'[A-Z]{1,2}|\d{1,2}(?:\.\d+)?', w['text'])]
+    shapes = [(o['bbox'], len(o['vertices']) >= 12, len(o['vertices']) == 6)
+              for o in outlines if not o['rectangle']]
+    rectangles = [o['bbox'] for o in outlines if o['rectangle']]
     for path in drawings:
         items = path['items']
-        box = path['rect'] * page.rotation_matrix
-        line_closed = bool(items and all(i[0] == 'l' for i in items) and
-                           abs(items[0][1].x - items[-1][2].x) < 1 and
-                           abs(items[0][1].y - items[-1][2].y) < 1)
-        if ((len(items) == 1 and items[0][0] == 're') or
-                (len(items) == 4 and (path.get('closePath') or line_closed) and all(i[0] == 'l' for i in items))):
-            rectangles.append(box)
+        bezier_circle = len(items) in (4, 8) and all(i[0] == 'c' for i in items)
+        poly_circle = (len(items) >= 12 and all(i[0] == 'l' for i in items)
+                       and items[0][1].distance_to(items[-1][2]) < .15)
+        if bezier_circle or poly_circle:
+            shapes.append((path['rect'] * page.rotation_matrix, True, False))
+    for box, circular, polygon in shapes:
         if not (4 <= box.width <= 45 and 4 <= box.height <= 45):
             continue
-        circular = (sum(i[0] == 'c' for i in items) >= 3 or
-                    (line_closed and len(items) >= 12 and .7 < box.width / box.height < 1.4))
-        polygon = 5 <= len(items) <= 8 and all(i[0] == 'l' for i in items)
+        circular = circular and .7 < box.width / box.height < 1.4
         if not (circular or polygon):
             continue
-        labels = [w for w in words if contains(box, (w['x0'] + w['x1']) / 2,
+        labels = [w for w in label_words if contains(box, (w['x0'] + w['x1']) / 2,
                                                (w['top'] + w['bottom']) / 2)
-                  and re.fullmatch(r'[A-Z]{1,2}|\d{1,2}', w['text'])]
+                  ]
         if len(labels) != 1:
             continue
         item = (labels[0]['text'], (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2)
@@ -48,9 +53,9 @@ def footing_context(page, words, annotations):
         for x, y in points:
             aligned_y = [p for p in points if abs(p[0] - x) < 3]
             aligned_x = [p for p in points if abs(p[1] - y) < 3]
-            if label.isdigit() and len(aligned_y) >= 2 and max(p[1] for p in aligned_y) - min(p[1] for p in aligned_y) > page.rect.height * .2:
+            if len(aligned_y) >= 2 and max(p[1] for p in aligned_y) - min(p[1] for p in aligned_y) > page.rect.height * .2:
                 vertical.append((label, x))
-            if label.isalpha() and len(aligned_x) >= 2 and max(p[0] for p in aligned_x) - min(p[0] for p in aligned_x) > page.rect.width * .2:
+            if len(aligned_x) >= 2 and max(p[0] for p in aligned_x) - min(p[0] for p in aligned_x) > page.rect.width * .2:
                 horizontal.append((label, y))
     vertical = list(set(vertical));horizontal = list(set(horizontal))
     instances = []
@@ -66,7 +71,12 @@ def footing_context(page, words, annotations):
         vs = {name for name, x in vertical if abs(x - cx) < frame.width * .2}
         hs = {name for name, y in horizontal if abs(y - cy) < frame.height * .2}
         if len(vs) == len(hs) == 1:
-            instances.append({'element': f'{next(iter(hs))}-{next(iter(vs))}',
+            labels = [next(iter(vs)), next(iter(hs))]
+            letters = [n for n in labels if n.isalpha()]
+            numbers = [n for n in labels if re.fullmatch(r'\d{1,2}(?:\.\d+)?', n)]
+            if len(letters) != 1 or len(numbers) != 1:
+                continue
+            instances.append({'element': f'{letters[0]}-{numbers[0]}',
                               'type_element': 'semelle', 'footing_type': code})
     rows = {}
     for w in words:

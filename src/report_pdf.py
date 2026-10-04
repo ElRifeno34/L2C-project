@@ -13,7 +13,7 @@ from xml.sax.saxutils import escape
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, PageBreak
 
 STATUS_COLORS = {
     "À VÉRIFIER": "#975a16",
@@ -50,6 +50,14 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
                                  leading=20, textColor=colors.HexColor("#1a365d"))
     small = ParagraphStyle("Small", parent=styles["Normal"], fontSize=8, leading=10)
 
+    def footer(canvas, document):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#4a5568'))
+        canvas.drawString(36, 20, 'L2C - Verification des armatures')
+        canvas.drawRightString(letter[0]-36, 20, f'Page {document.page}')
+        canvas.restoreState()
+
     story = []
     story.append(Paragraph("Structural Reinforcement Verification Report", title_style))
     story.append(Paragraph(f"Generated on {datetime.now():%Y-%m-%d %H:%M}. "
@@ -61,16 +69,18 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
         annotations = sum(p['annotation_count'] for p in coverage)
         associated = sum(p['associated_count'] for p in coverage)
         unresolved = sum(p['unresolved_count'] for p in coverage)
+        ocr_skipped = sum(p.get('ocr_skipped', False) for p in coverage)
         story.append(Paragraph(
             f"Extraction coverage: {len(coverage)} pages, {annotations} reinforcement annotations, "
             f"{associated} associated and {unresolved} unresolved. "
+            f"{ocr_skipped} OCR candidate pages were not processed with OCR. "
             "Automatic association is partial. Zero discrepancies does not establish conformity. "
             "Unmatched elements require review before absence is confirmed.", small))
         story.append(Spacer(1, 10))
 
     if not reconciled_data:
         story.append(Paragraph("No data to report.", styles["Normal"]))
-        doc.build(story)
+        doc.build(story, onFirstPage=footer, onLaterPages=footer)
         return
 
     # Summary by plan sheet 
@@ -102,11 +112,15 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
     story.append(Spacer(1, 18))
 
     # Detailed discrepancy log, one table per sheet 
-    story.append(Paragraph("2. Detailed Discrepancy Log", styles["Heading2"]))
-
-    for sheet, stats in reconciled_data.items():
-        story.append(Spacer(1, 6))
+    for index, (sheet, stats) in enumerate(reconciled_data.items()):
+        story.append(PageBreak())
+        if index == 0:
+            story.append(Paragraph("2. Detailed Discrepancy Log", styles["Heading2"]))
         story.append(Paragraph(f"Sheet {escape(str(sheet))}", styles["Heading3"]))
+        story.append(Paragraph(
+            f"Conformities: {stats['conforme']} | Non-conformities: {stats['non_conforme']} | "
+            f"To review: {stats.get('a_verifier', 0)}", small))
+        story.append(Spacer(1, 8))
 
         items = stats["discrepancies"]
         if not items:
@@ -116,7 +130,8 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
             story.append(Paragraph(message, styles["Normal"]))
             continue
 
-        rows = [["Element", "Status", "Plan location", "Shop location", "Discrepancy details"]]
+        rows = [[Paragraph(label, small) for label in
+                 ["Element", "Status", "Plan location", "Shop location", "Discrepancy details"]]]
         for item in items:
             color = STATUS_COLORS.get(item["status"], "#000000")
             issues = item.get("issues") or [item.get("detail", "")]
@@ -138,13 +153,15 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
         story.append(table)
 
     if coverage is not None:
-        story.append(Spacer(1, 16))
+        story.append(PageBreak())
         story.append(Paragraph("3. Page coverage and unresolved associations", styles['Heading2']))
-        rows = [['Document / sheet', 'Page', 'Annotations', 'Associated', 'Unresolved', 'Text method']]
+        rows = [[Paragraph(label, small) for label in
+                 ['Document / sheet', 'Page', 'Annotations', 'Associated', 'Unresolved', 'Text method']]]
         for p in coverage:
             rows.append([Paragraph(escape(f"{p['fichier']} / {p['feuillet']}"), small),
                          str(p['page']), str(p['annotation_count']), str(p['associated_count']),
-                         str(p['unresolved_count']), p['text_method']])
+                         str(p['unresolved_count']),
+                         Paragraph('OCR skipped' if p.get('ocr_skipped') else p['text_method'], small)])
         table = Table(rows, colWidths=[235, 35, 65, 65, 70, 70], repeatRows=1)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), HEADER_BG),
@@ -157,10 +174,11 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
         if unresolved:
             story.append(Spacer(1, 10))
             story.append(Paragraph('Unresolved annotation references (first 100; full list in associations.json)', small))
-            rows = [['Source location', 'Status', 'Annotation ID']]
+            rows = [[Paragraph(label, small) for label in ['Source location', 'Status', 'Annotation ID']]]
             for e in unresolved[:100]:
                 rows.append([Paragraph(escape(f"{e['fichier']}, p.{e['page']} ({e['x']:.1f}, {e['y']:.1f})"), small),
-                             e['status'], e['annotation_id']])
+                             Paragraph(escape(e['status']), small),
+                             Paragraph(escape(e['annotation_id']), small)])
             table = Table(rows, colWidths=[290, 80, 170], repeatRows=1)
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), HEADER_BG),
@@ -169,7 +187,7 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=No
                 ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
             story.append(table)
 
-    doc.build(story)
+    doc.build(story, onFirstPage=footer, onLaterPages=footer)
 
 
 if __name__ == "__main__":

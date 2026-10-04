@@ -7,6 +7,7 @@ context. Proximity alone never confirms an association.
 import argparse
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 
 from l2c.annex_a import Annotation
@@ -34,24 +35,43 @@ def associate_annotations(annotations, elements):
     identities = [(page_key(e), e["element"]) for e in elements]
     if len(identities) != len(set(identities)):
         raise ValueError("Element identifiers must be unique within a source page.")
+    pages = defaultdict(list)
+    for element in elements:
+        pages[page_key(element)].append(element)
+    lookup = {}
+    for key, available in pages.items():
+        schedules = defaultdict(list)
+        for index, element in enumerate(available):
+            if element.get('schedule_ref'):
+                schedules[element['schedule_ref']].append(index)
+        lookup[key] = {
+            'elements': available,
+            'names': {e['element']: i for i, e in enumerate(available)},
+            'patterns': [(i, re.compile(r'(?<![\w-])' + re.escape(e['element']) + r'(?![\w-])'))
+                         for i, e in enumerate(available)],
+            'regions': [(i, e['bbox']) for i, e in enumerate(available) if e.get('bbox')],
+            'schedules': schedules,
+        }
     records, evidence = [], []
     for a in annotations:
-        available = [e for e in elements if page_key(e) == page_key(a)]
-        candidates = {}
-        for index, e in enumerate(available):
-            reasons = []
-            if a.get("element_ref") == e["element"]:
-                reasons.append("explicit_element_reference")
-            if a.get("text") and re.search(r"(?<![\w-])" + re.escape(e["element"]) + r"(?![\w-])", a["text"]):
-                reasons.append("element_identifier_in_annotation")
-            if a.get("leader_endpoint") and e.get("bbox") and inside(a["leader_endpoint"], e["bbox"]):
-                reasons.append("leader_endpoint_in_element_region")
-            if e.get("bbox") and inside((a["x"], a["y"]), e["bbox"]):
-                reasons.append("annotation_inside_element_region")
-            if a.get("schedule_ref") and a["schedule_ref"] == e.get("schedule_ref"):
-                reasons.append("marker_to_schedule_reference")
-            if reasons:
-                candidates[index] = reasons
+        page = lookup.get(page_key(a), {'elements': [], 'names': {}, 'patterns': [],
+                                       'regions': [], 'schedules': {}})
+        available = page['elements']
+        candidates = defaultdict(list)
+        if a.get('element_ref') in page['names']:
+            candidates[page['names'][a['element_ref']]].append('explicit_element_reference')
+        if a.get('text'):
+            for index, pattern in page['patterns']:
+                if pattern.search(a['text']):
+                    candidates[index].append('element_identifier_in_annotation')
+        for index, box in page['regions']:
+            if a.get('leader_endpoint') and inside(a['leader_endpoint'], box):
+                candidates[index].append('leader_endpoint_in_element_region')
+            if inside((a['x'], a['y']), box):
+                candidates[index].append('annotation_inside_element_region')
+        for index in page['schedules'].get(a.get('schedule_ref'), []):
+            candidates[index].append('marker_to_schedule_reference')
+        candidates = dict(sorted(candidates.items()))
         shared_schedule = bool(candidates) and all(
             reasons == ["marker_to_schedule_reference"] for reasons in candidates.values())
         accepted = len(candidates) == 1 or shared_schedule

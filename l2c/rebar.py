@@ -20,12 +20,14 @@ def metric(value, unit):
 def parse_callouts(text):
     """Return bar values plus character spans. Unspecified units stay unknown."""
     items = []
-    for match in CALLOUT.finditer(text):
+    matches = list(CALLOUT.finditer(text))
+    for index, match in enumerate(matches):
         bar = {'repere': None, 'diametre': re.sub(r'\s+', '', match['diameter']).upper(),
                'quantite': int(match['quantity']) if match['quantity'] else None,
                'espacement_mm': None, 'longueur_mm': None}
         end = match.end()
-        following = text[end:]
+        boundary = matches[index+1].start() if index+1 < len(matches) else len(text)
+        following = text[end:boundary]
         spacing = SPACING.match(following)
         if spacing and spacing[2]:
             bar['espacement_mm'] = metric(spacing[1], spacing[2])
@@ -33,6 +35,7 @@ def parse_callouts(text):
         length = LENGTH.search(following)
         if length:
             bar['longueur_mm'] = metric(length[1], length[2])
+            end = max(end, match.end() + length.end())
         if any(bar[k] is not None and bar[k] <= 0 for k in ('espacement_mm', 'longueur_mm')):
             continue
         items.append({'armature': [bar], 'start': match.start(), 'end': end})

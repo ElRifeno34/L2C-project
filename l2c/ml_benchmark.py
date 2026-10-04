@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--samples", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model-dir", type=Path,
-                        help="Downloaded Florence model directory; enables offline loading.")
+                        help="Local Florence weights or parent of the two local Paddle model directories.")
     args = parser.parse_args()
     if args.output.resolve().is_relative_to(Path(__file__).resolve().parents[1]) or any('onedrive' in p.lower() for p in args.output.resolve().parts):
         parser.error("Save results outside the repository and cloud-synced folders.")
@@ -52,11 +52,18 @@ def main():
         with patch("os.path.expanduser", side_effect=local_expanduser):
             import paddle
         from paddleocr import PaddleOCR
+        local_models = {}
+        if args.model_dir:
+            from l2c.models import check_models
+            if not all(check_models(args.model_dir).values()):
+                parser.error('--model-dir must contain the two preloaded Paddle models')
+            local_models = {'text_detection_model_dir': str(args.model_dir / 'PP-OCRv5_mobile_det'),
+                            'text_recognition_model_dir': str(args.model_dir / 'PP-OCRv5_mobile_rec')}
         model = PaddleOCR(device="cpu", enable_mkldnn=False, cpu_threads=2,
                           text_detection_model_name="PP-OCRv5_mobile_det",
                           text_recognition_model_name="PP-OCRv5_mobile_rec",
                           use_doc_orientation_classify=False, use_doc_unwarping=False,
-                          use_textline_orientation=False)
+                          use_textline_orientation=False, **local_models)
     else:
         import torch
         from transformers import AutoModelForCausalLM, AutoProcessor

@@ -19,7 +19,7 @@ La solution vise les ingénieurs, les techniciens et les équipes chargées de v
 3. Structurer les caractéristiques des armatures en JSON, avec leur feuille et leur position dans le document.
 4. Associer les éléments à partir des repères, axes, types et dimensions.
 5. Comparer les caractéristiques selon les règles du challenge.
-6. Générer un rapport PDF organisé par feuille de plan, avec les écarts et les extraits justificatifs.
+6. Générer un rapport PDF organisé par feuille de plan, avec les écarts et les références fichier/page/coordonnées.
 
 Les extractions et associations incertaines sont signalées pour validation. Une information illisible ou absente ne doit pas être présentée comme une non-conformité confirmée.
 
@@ -132,7 +132,7 @@ The supplied Jupyter server configuration clears outputs, execution counts, widg
 
 Annotations supply Annex A source fields, a unique annotation id, parsed armature, x/y, and optionally text, bbox, element_ref, leader_endpoint, schedule_ref and direction. Elements supply the same source/page fields, element and type_element, plus optional bbox and schedule_ref. Coordinates must be PDF points relative to the displayed page's upper-left corner. Source file, sheet and page must agree before an association is considered.
 
-Supported evidence: exact element identifiers, leader endpoints inside element regions, annotation containment and shared marker-to-schedule references. Conflicting candidates become ambiguous; absent evidence becomes unresolved. Shared schedules can intentionally produce records for several elements. A schedule_ref must be unique to its table/type context, not merely a letter such as C. This module consumes detected or manually verified context; automatic marker, grid and leader detection is not implemented. Heuristics have not been calibrated into probability scores.
+Supported evidence: exact element identifiers, leader endpoints inside element regions, annotation containment and shared marker-to-schedule references. Conflicting candidates become ambiguous; absent evidence becomes unresolved. Shared schedules can intentionally produce records for several elements. A schedule_ref must be unique to its table/type context, not merely a letter such as C. The project pipeline detects some vector footing markers and paired grid axes; generic leader detection remains unimplemented. Heuristics have not been calibrated into probability scores.
 
 Run on a local input JSON containing annotations and elements:
 
@@ -170,7 +170,7 @@ Ne pas utiliser `--mock-input` pour les données réelles. Les compteurs `manqua
 
 Reinforcement, including repeated bar marks, is compared with quantities attached to diameter, spacing and length; reordered or split identical groups remain equivalent. Missing extraction, entirely unknown bar values and uncertain quantity aggregation produce `À VÉRIFIER`, counted under `a_verifier` in reconciliation output and separately in the PDF. Annex A input fields are unchanged.
 
-Repeated element names in multiple file/sheet/page locations are not merged automatically: each plan location is flagged for explicit instance association. This conservative fallback does not infer floors or match by sheet number, since plan and workshop sheets can differ. Multiple annotations for a name within one document page still merge; distinguishing separate instances on that page requires upstream association. Longitudinal/transverse context is not available in Annex A and is not inferred by the matcher.
+Repeated element names in multiple file/sheet/page locations are not merged automatically: each plan location is flagged for explicit instance association. This conservative fallback does not infer floors or match by sheet number, since plan and workshop sheets can differ. Multiple annotations for a name within one document page still merge; distinguishing separate instances on that page requires upstream association. Reviewed instance identities and longitudinal/transverse directions can be supplied through separate context metadata. They are used by the matcher without changing Annex A fields.
 
 Regression checks: `python -m unittest discover -s tests -v` and `python tests/test_match_cases.py`.
 
@@ -194,7 +194,7 @@ python -m pip install -r requirements.txt
 python -m l2c.pipeline --project-dir "C:\Users\Admin\Downloads\l2c-participants\CLP" --output-dir "C:\Users\Admin\Documents\L2C-results\CLP" --ocr off
 ```
 
-Mode natif : rapide, sans poids ML; utile pour les PDF vectoriels et pour tester l’installation. Mode `auto` : OCR des pages pauvres en texte. Mode `hybrid` : mode auto et vérification de crops natifs par Paddle. La comparaison ML ne remplace pas automatiquement un texte natif en cas de désaccord; le cas est signalé pour revue.
+Mode natif : sans poids ML; utile pour les PDF vectoriels et pour tester l’installation. Mode `auto` : OCR des pages pauvres en texte, y compris les grandes images avec un cartouche vectoriel. Mode `hybrid` : mode auto et vérification de crops natifs par Paddle. La comparaison ML ne remplace pas automatiquement un texte natif en cas de désaccord; le cas est signalé pour revue. Les doublons des tuiles OCR sont supprimés selon le texte et le recouvrement spatial.
 
 Installer l’environnement ML avant la démonstration (poids publics téléchargés sans documents) :
 
@@ -220,9 +220,13 @@ Sorties dans le dossier local choisi :
 
 Un code de sortie 2 signale les erreurs ou fichiers non classifiés; conserver run-summary.json pour diagnostic. Les sorties partielles ne doivent pas être présentées comme une vérification exhaustive. `--max-pages` sert uniquement aux essais rapides. Exécuter chaque projet séparément. Le classement des sources reconnaît `L2C_PLAN_STR*.pdf` et les PDF sous `DA`.
 
+`--max-ocr-pages 2` permet un essai ML court sur deux pages candidates tout en traitant le texte natif de toutes les pages. C’est un essai partiel : `ocr_processed_pages`, `ocr_skipped_pages`, `limited_run` et le PDF indiquent sa couverture. Sans cette option, le mode auto/hybrid traite toutes les pages candidates. Le mode natif signale aussi les pages où l’OCR a été omis. Le temps sur les grandes feuilles dépend du nombre de tuiles et doit être mesuré avant la démo.
+
 ### Association et corrections locales
 
 Associations automatiques : identifiant explicite dans le même segment texte, cadre de détail contenant un identifiant unique, et cas de semelles où marqueur fermé, axes de grille appariés et ligne TYPE du tableau sont tous reconnus. Les cas ambigus restent non résolus. Ces règles ne constituent pas un détecteur entraîné de tous les éléments structuraux.
+
+Les contours CAD sont reconstruits en cycles fermés, même si les tracés PDF sont séparés ou regroupés. Les lignes ouvertes ou avec embranchements sont exclues. L’ordre des axes lettre/nombre peut être inversé. Une région vérifiée remplace le contexte automatique pour les annotations qu’elle contient; elle ne constitue pas une validation de tous les éléments utilisant le même tableau. Les longueurs explicites ne sont pas propagées à la prochaine annotation et les valeurs non finies sont refusées par Pydantic.
 
 Un fichier `--context` local peut préciser des régions vérifiées par l’ingénieur. Exemple synthétique :
 
@@ -236,9 +240,17 @@ Les boîtes sont en points PDF, origine supérieure gauche; le fichier est relat
 
 ### Notebook et démonstration de 10 minutes
 
-Installer `requirements-notebook.txt`, lancer Jupyter avec la configuration fournie, puis Restart Kernel and Run All. Le notebook utilise CLP par défaut. Pour l’OCR, configurer `L2C_ML_PYTHON` si l’interpréteur est séparé et `L2C_OCR_MODELS_DIR`; pour des régions vérifiées, `L2C_CONTEXT_FILE`. Les résultats sont externes au dépôt.
+Installer `requirements-notebook.txt`, lancer Jupyter avec la configuration fournie, puis Restart Kernel and Run All. Le notebook utilise CLP par défaut. Pour l’OCR, configurer `L2C_ML_PYTHON` si l’interpréteur est séparé et `L2C_OCR_MODELS_DIR`; pour des régions vérifiées, `L2C_CONTEXT_FILE`. `L2C_MAX_OCR_PAGES` est un budget facultatif déclaré pour un essai partiel. Le benchmark Paddle utilise les poids locaux indiqués. Les résultats sont externes au dépôt.
 
 Déroulé : 1 minute problème/architecture; 2 minutes extraction et OCR local; 3 minutes exécution du pipeline; 2 minutes rapport, écarts et preuves; 2 minutes couverture, limites et questions. Le projet du jury doit être exécuté en direct. Les cinq types sont couverts par des tests synthétiques; leur généralisation sur les vrais plans n’est pas établie. Aucun rappel/précision jury n’est revendiqué.
+
+Démo reproductible sans données confidentielles :
+
+```powershell
+python -m l2c.demo_project --project-dir "C:\Users\Admin\Documents\L2C-demo\input" --output-dir "C:\Users\Admin\Documents\L2C-demo\output"
+```
+
+Elle produit des PDF synthétiques pour semelle, poutre, mur, colonne et dalle, puis exécute le vrai pipeline. Résultat attendu : quatre écarts (quantité, diamètre, espacement, longueur), une conformité et une annotation non résolue. Les feuilles des ateliers diffèrent de celles des plans. Ce test ne remplace pas l’exécution sur le projet réel d’évaluation.
 
 ### Dépendances et remise
 

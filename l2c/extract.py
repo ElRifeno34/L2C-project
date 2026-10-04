@@ -4,6 +4,32 @@ import re
 from collections import defaultdict
 
 from l2c.rebar import element_labels, parse_callouts
+from l2c.geometry import closed_outlines
+
+
+def deduplicate_words(words):
+    """Remove overlapping copies from OCR tiles / duplicated PDF text layers."""
+    kept, buckets = [], defaultdict(list)
+    for word in words:
+        cx, cy = (word['x0']+word['x1'])/2, (word['top']+word['bottom'])/2
+        gx, gy = int(cx//16), int(cy//16)
+        duplicates = []
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                duplicates.extend(buckets[(word['text'], gx+dx, gy+dy)])
+        area = max(0, word['x1']-word['x0']) * max(0, word['bottom']-word['top'])
+        duplicate = False
+        for old in duplicates:
+            intersection = max(0, min(word['x1'],old['x1'])-max(word['x0'],old['x0'])) * max(
+                0, min(word['bottom'],old['bottom'])-max(word['top'],old['top']))
+            old_area = max(0, old['x1']-old['x0']) * max(0, old['bottom']-old['top'])
+            if area and old_area and intersection / (area+old_area-intersection) >= .7:
+                duplicate = True
+                break
+        if not duplicate:
+            kept.append(word)
+            buckets[(word['text'],gx,gy)].append(word)
+    return kept
 
 
 def text_segments(words):
@@ -105,30 +131,32 @@ def apply_context(annotations, elements, context, width, height):
                 raise ValueError('Context rectangle outside the displayed PDF page.')
             if region[0] <= a['x'] <= region[2] and region[1] <= a['y'] <= region[3]:
                 a['element_ref'] = item['element']
+                a.pop('schedule_ref', None)
                 a['text'] = ''  # explicit reviewed region supersedes inferred text labels
                 a['direction'] = item.get('direction')
                 a['instance_id'] = item.get('instance_id')
                 a['context_provenance'] = 'reviewer supplied region'
                 element = {k: a[k] for k in ('source', 'fichier', 'feuillet', 'page')}
                 element.update(element=item['element'], type_element=item['type_element'])
-                if not any(e['element'] == element['element'] for e in elements):
+                existing = next((e for e in elements if e['element'] == element['element']), None)
+                if existing is None:
                     elements.append(element)
+                else:
+                    existing.update(type_element=item['type_element'])
     return annotations, elements
 
 
-def framed_element_regions(page, words):
+def framed_element_regions(page, words, drawings=None, outlines=None):
     """Named detail frames provide stronger context than nearest-label distance."""
     regions = []
     labelled_words = [(w, element_labels(w['text'])) for w in words]
     labelled_words = [(w, labels) for w, labels in labelled_words if labels]
-    for path in page.get_drawings():
-        items = path['items']
-        closed_lines = (len(items) == 4 and all(i[0] == 'l' for i in items) and
-                        abs(items[0][1].x - items[-1][2].x) < 1 and
-                        abs(items[0][1].y - items[-1][2].y) < 1)
-        if not ((len(items) == 1 and items[0][0] == 're') or closed_lines):
+    if outlines is None:
+        outlines = closed_outlines(page.get_drawings() if drawings is None else drawings, page.rotation_matrix)
+    for outline in outlines:
+        if not outline['rectangle']:
             continue
-        box = path['rect'] * page.rotation_matrix
+        box = outline['bbox']
         if box.width < 70 or box.height < 35 or box.width > page.rect.width * .9 or box.height > page.rect.height * .9:
             continue
         labels = {}

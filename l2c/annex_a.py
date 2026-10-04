@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Armature(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     repere: str | None = None
     diametre: str | None = None
     quantite: int | None = Field(default=None, ge=0)
@@ -13,7 +13,7 @@ class Armature(BaseModel):
 
 
 class Annotation(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     id: str
     source: Literal["plan", "atelier"]
     fichier: str

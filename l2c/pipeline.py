@@ -11,9 +11,10 @@ import pymupdf as fitz
 from l2c.annex_a import Annotation
 from l2c.associate import associate_annotations
 from l2c.extract import (apply_context, extract_annotations, identify_sheet,
-                         framed_element_regions, associate_frames)
+                         framed_element_regions, associate_frames, deduplicate_words)
 from l2c.rebar import parse_callouts
 from l2c.footings import footing_context
+from l2c.geometry import closed_outlines
 from src.match import match_and_reconcile
 from src.report_pdf import generate_pdf_report
 
@@ -55,8 +56,24 @@ def source_for(path, project):
     return None
 
 
+def needs_ocr(page, words):
+    if len(words) < 20:
+        return True
+    area = page.rect.width * page.rect.height
+    for image in page.get_image_info():
+        box = fitz.Rect(image['bbox']) * page.rotation_matrix
+        if box.width * box.height < .3 * area:
+            continue
+        inside = sum(box.contains(fitz.Point((w['x0']+w['x1'])/2,
+                                             (w['top']+w['bottom'])/2)) for w in words)
+        if inside < 100:
+            return True
+    return False
+
+
 def run_project(project_dir, output_dir, ocr='off', models_dir=None,
-                context_file=None, max_pages=None, verify_crops=3, progress=None):
+                context_file=None, max_pages=None, verify_crops=3, progress=None,
+                max_ocr_pages=None):
     """General conservative baseline. Unresolved annotations are never invented elements."""
     started = time.perf_counter()
     project = Path(project_dir).resolve()
@@ -68,6 +85,8 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
         context = context['regions']
     if ocr not in ('off', 'auto', 'hybrid'):
         raise ValueError('Unknown OCR mode.')
+    if max_ocr_pages is not None and max_ocr_pages < 0:
+        raise ValueError('OCR page budget must be non-negative.')
     model = None
     def get_model():
         nonlocal model
@@ -79,7 +98,7 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
         return model
     records, associations, all_annotations, coverage, errors = [], [], [], [], []
     contexts, seen_ids = {}, set()
-    verified = processed = 0
+    verified = processed = ocr_pages = 0
     sheets = set()
     unknown_files = []
     files = sorted(project.rglob('*.pdf'))
@@ -102,7 +121,9 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
                 try:
                     words = native_words(page)
                     method = 'native'
-                    if len(words) < 20 and ocr != 'off':
+                    ocr_candidate = needs_ocr(page, words)
+                    ocr_allowed = max_ocr_pages is None or ocr_pages < max_ocr_pages
+                    if ocr != 'off' and ocr_candidate and ocr_allowed:
                         # OCR at readable scale in overlapping tiles, never shrink a large sheet.
                         words = []
                         tile, step = 650, 600
@@ -113,18 +134,23 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
                                 words.extend(get_model().words(image, origin))
                                 image.close()
                         method = 'paddle'
+                        ocr_pages += 1
+                    words = deduplicate_words(words)
                     sheet, sheet_method = identify_sheet(words, filename, page_index + 1,
                                                          page.rect.width, page.rect.height)
                     if source == 'plan':
                         sheets.add(sheet)
                     annotations, elements = extract_annotations(words, source, filename, sheet,
                                                                 page_index + 1, method)
-                    annotations, elements = associate_frames(
-                        annotations, elements, framed_element_regions(page, words))
-                    footing_elements, _ = footing_context(page, words, annotations)
-                    for element in footing_elements:
-                        if not any(e['element'] == element['element'] for e in elements):
-                            elements.append(element)
+                    if annotations and (elements or any('SEMELLE' in w['text'].upper() for w in words)):
+                        drawings = page.get_drawings()
+                        outlines = closed_outlines(drawings, page.rotation_matrix)
+                        annotations, elements = associate_frames(
+                            annotations, elements, framed_element_regions(page, words, drawings, outlines))
+                        footing_elements, _ = footing_context(page, words, annotations, drawings, outlines)
+                        for element in footing_elements:
+                            if not any(e['element'] == element['element'] for e in elements):
+                                elements.append(element)
                     annotations, elements = apply_context(annotations, elements, context,
                                                           page.rect.width, page.rect.height)
                     if ocr == 'hybrid' and method == 'native':
@@ -167,6 +193,8 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
                                      'page': page_index + 1, 'width': page.rect.width,
                                      'height': page.rect.height, 'sheet_method': sheet_method,
                                      'text_method': method, 'annotation_count': len(annotations),
+                                     'ocr_candidate': ocr_candidate,
+                                     'ocr_skipped': ocr_candidate and method != 'paddle',
                                      'associated_count': sum(e['status'] == 'associated' for e in result['associations']),
                                      'unresolved_count': sum(e['status'] != 'associated' for e in result['associations'])})
                 except Exception as exc:
@@ -195,9 +223,16 @@ def run_project(project_dir, output_dir, ocr='off', models_dir=None,
                'associated_annotations': sum(e['status'] == 'associated' for e in associations),
                'unresolved_annotations': sum(e['status'] != 'associated' for e in associations),
                'ocr_verified_crops': verified, 'ocr_mode': ocr,
+               'ocr_candidate_pages': sum(p['ocr_candidate'] for p in coverage),
+               'ocr_processed_pages': ocr_pages,
+               'ocr_skipped_pages': sum(p['ocr_skipped'] for p in coverage),
+               'max_ocr_pages': max_ocr_pages,
                'errors': errors, 'unclassified_files': unknown_files,
-               'limited_run': max_pages is not None, 'seconds': round(time.perf_counter() - started, 3),
+               'limited_run': max_pages is not None or (ocr != 'off' and max_ocr_pages is not None
+                                                       and any(p['ocr_skipped'] for p in coverage)),
+               'seconds': round(time.perf_counter() - started, 3),
                'coverage_note': 'Prototype with partial automatic association. Zero detected discrepancies is not proof of conformity.',
+               'context_supplied': context_file is not None,
                'outputs': ['annex-a.json', 'annotations.json', 'associations.json', 'coverage.json',
                            'reconciliation.json', 'run-summary.json', 'report.pdf']}
     for name, data in [('annex-a', records), ('annotations', all_annotations),
@@ -219,14 +254,21 @@ def main():
     parser.add_argument('--context', type=Path, help='Local reviewer-supplied annotation regions JSON')
     parser.add_argument('--max-pages', type=int)
     parser.add_argument('--verify-crops', type=int, default=3)
+    parser.add_argument('--max-ocr-pages', type=int,
+                        help='Explicit partial demo budget; default processes every OCR candidate page')
     args = parser.parse_args()
     if args.max_pages is not None and args.max_pages < 1:
         parser.error('--max-pages must be positive')
+    if args.max_ocr_pages is not None and args.max_ocr_pages < 0:
+        parser.error('--max-ocr-pages must be non-negative')
+    if args.verify_crops < 0:
+        parser.error('--verify-crops must be non-negative')
     if args.ocr != 'off' and not args.models_dir:
         parser.error('--models-dir is required for offline OCR; use --ocr off for native-only extraction')
     summary = run_project(args.project_dir, args.output_dir, args.ocr, args.models_dir,
                           args.context, args.max_pages, args.verify_crops,
-                          progress=lambda data: print(json.dumps(data), flush=True))
+                          progress=lambda data: print(json.dumps(data), flush=True),
+                          max_ocr_pages=args.max_ocr_pages)
     print(json.dumps({k: v for k, v in summary.items() if k not in ('errors', 'unclassified_files')}, ensure_ascii=True))
     if summary['errors'] or summary['unclassified_files']:
         raise SystemExit(2)
