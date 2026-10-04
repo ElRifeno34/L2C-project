@@ -17,6 +17,7 @@ issues (list of short sentences), x, y, page, fichier, plan, shop.
 """
  
 import re
+from copy import deepcopy
 from collections import Counter
 import warnings
 from collections import defaultdict
@@ -56,7 +57,8 @@ def normalize_type(value: Optional[Any]) -> str:
  
 def build_key(item: Dict[str, Any]) -> Key:
     sheet = normalize_name(item.get("feuillet")) if MATCH_ON_SHEET else ""
-    return (sheet, normalize_type(item.get("type_element")), normalize_name(item.get("element")))
+    identity = item.get('_instance_id') or item.get('element')
+    return (sheet, normalize_type(item.get("type_element")), normalize_name(identity))
  
  
 def _to_number(value: Any) -> Optional[float]:
@@ -148,7 +150,10 @@ def _group_bars(armature: Optional[List[Dict[str, Any]]]) -> Dict[str, List[Dict
     """Bars grouped by their mark ('repere'), e.g. 'C12-1'."""
     groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for bar in armature or []:
-        groups[normalize_name(bar.get("repere"))].append(bar)
+        mark = normalize_name(bar.get("repere"))
+        if bar.get('_direction'):
+            mark += ':' + normalize_name(bar['_direction'])
+        groups[mark].append(bar)
     return groups
  
  
@@ -214,6 +219,8 @@ def compare_armature(plan_bars, shop_bars) -> List[str]:
     for mark in sorted(set(plan_groups) | set(shop_groups)):
         first_bar = (plan_groups.get(mark) or shop_groups.get(mark))[0]
         name = str(first_bar.get("repere") or "").strip() or "(no mark)"
+        if first_bar.get('_direction'):
+            name += ' / ' + str(first_bar['_direction'])
         if mark not in shop_groups:
             issues.append(f"Bar {name}: on plan but missing from shop drawing")
             continue
@@ -284,7 +291,15 @@ def _new_sheet_stats() -> Dict[str, Any]:
     return {"conforme": 0, "non_conforme": 0, "manquant": 0, "ajoute": 0, "a_verifier": 0, "discrepancies": []}
  
  
-def match_and_reconcile(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+def match_and_reconcile(records: List[Dict[str, Any]], contexts=None) -> Dict[str, Any]:
+    # Additional instance/direction evidence lives outside Annex A.
+    records = deepcopy(records)
+    for record in records:
+        context = (contexts or {}).get(record.get('id'), {})
+        record['_instance_id'] = context.get('instance_id')
+        record['_review_reasons'] = context.get('review_reasons', [])
+        for bar in record.get('armature') or []:
+            bar['_direction'] = context.get('direction')
     plans, shops = group_records(records)
     results: Dict[str, Dict[str, Any]] = defaultdict(_new_sheet_stats)
  
@@ -294,6 +309,9 @@ def match_and_reconcile(records: List[Dict[str, Any]]) -> Dict[str, Any]:
         # Annex A has no shared level/instance identifier. Do not guess a
         # pairing when a name occurs in multiple document locations.
         def document_locations(items):
+            instances = {r.get('_instance_id') for r in items}
+            if len(instances) == 1 and None not in instances:
+                return instances
             return {(r.get("fichier"), r.get("feuillet"), r.get("page")) for r in items}
         if len(document_locations(plan_records)) > 1 or len(document_locations(shop_records)) > 1:
             review_records = plan_records or shop_records
@@ -341,6 +359,7 @@ def match_and_reconcile(records: List[Dict[str, Any]]) -> Dict[str, Any]:
         # Case 3: on both sides -> compare the bars
         sheet = plan.get("feuillet") or "UNKNOWN"
         review = reinforcement_review_reasons(plan.get("armature"), shop.get("armature"))
+        review.extend(reason for r in plan_records + shop_records for reason in r.get('_review_reasons', []))
         issues = compare_armature(plan.get("armature"), shop.get("armature"))
         if review and not issues:
             results[sheet]["a_verifier"] += 1

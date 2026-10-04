@@ -39,7 +39,7 @@ def _location_text(ref) -> str:
     return "<br/>".join(parts) or "-"
 
 
-def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
+def generate_pdf_report(reconciled_data: dict, output_pdf_path: str, coverage=None, associations=None) -> None:
     doc = SimpleDocTemplate(
         output_pdf_path, pagesize=letter,
         rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36,
@@ -56,6 +56,17 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
                            "This report flags differences for review; the final decision "
                            "remains the engineer's.", small))
     story.append(Spacer(1, 12))
+
+    if coverage is not None:
+        annotations = sum(p['annotation_count'] for p in coverage)
+        associated = sum(p['associated_count'] for p in coverage)
+        unresolved = sum(p['unresolved_count'] for p in coverage)
+        story.append(Paragraph(
+            f"Extraction coverage: {len(coverage)} pages, {annotations} reinforcement annotations, "
+            f"{associated} associated and {unresolved} unresolved. "
+            "Automatic association is partial. Zero discrepancies does not establish conformity. "
+            "Unmatched elements require review before absence is confirmed.", small))
+        story.append(Spacer(1, 10))
 
     if not reconciled_data:
         story.append(Paragraph("No data to report.", styles["Normal"]))
@@ -99,7 +110,10 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
 
         items = stats["discrepancies"]
         if not items:
-            story.append(Paragraph("No discrepancies detected.", styles["Normal"]))
+            message = "No discrepancies detected."
+            if coverage is not None and not stats['conforme']:
+                message = "No verified element comparison available for this sheet. Review extraction coverage."
+            story.append(Paragraph(message, styles["Normal"]))
             continue
 
         rows = [["Element", "Status", "Plan location", "Shop location", "Discrepancy details"]]
@@ -122,6 +136,38 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]))
         story.append(table)
+
+    if coverage is not None:
+        story.append(Spacer(1, 16))
+        story.append(Paragraph("3. Page coverage and unresolved associations", styles['Heading2']))
+        rows = [['Document / sheet', 'Page', 'Annotations', 'Associated', 'Unresolved', 'Text method']]
+        for p in coverage:
+            rows.append([Paragraph(escape(f"{p['fichier']} / {p['feuillet']}"), small),
+                         str(p['page']), str(p['annotation_count']), str(p['associated_count']),
+                         str(p['unresolved_count']), p['text_method']])
+        table = Table(rows, colWidths=[235, 35, 65, 65, 70, 70], repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), HEADER_BG),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), .5, GRID),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+        story.append(table)
+        unresolved = [e for e in associations or [] if e['status'] != 'associated']
+        if unresolved:
+            story.append(Spacer(1, 10))
+            story.append(Paragraph('Unresolved annotation references (first 100; full list in associations.json)', small))
+            rows = [['Source location', 'Status', 'Annotation ID']]
+            for e in unresolved[:100]:
+                rows.append([Paragraph(escape(f"{e['fichier']}, p.{e['page']} ({e['x']:.1f}, {e['y']:.1f})"), small),
+                             e['status'], e['annotation_id']])
+            table = Table(rows, colWidths=[290, 80, 170], repeatRows=1)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HEADER_BG),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), .5, GRID),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+            story.append(table)
 
     doc.build(story)
 
