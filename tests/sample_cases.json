@@ -1,0 +1,806 @@
+[
+  {
+    "id": "S-500_C-01_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 100,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-01",
+    "armature": [
+      {
+        "repere": "C01-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-01_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -200,
+    "y": -100,
+    "type_element": "colonne",
+    "element": "C-01",
+    "armature": [
+      {
+        "repere": "C01-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-02_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 150,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-02",
+    "armature": [
+      {
+        "repere": "C02-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-02_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -150,
+    "y": -100,
+    "type_element": "colonne",
+    "element": "C-02",
+    "armature": [
+      {
+        "repere": "C02-1",
+        "diametre": "25M",
+        "quantite": 6,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-03_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 200,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-03",
+    "armature": [
+      {
+        "repere": "C03-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-03_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -100,
+    "y": -100,
+    "type_element": "colonne",
+    "element": "C-03",
+    "armature": [
+      {
+        "repere": "C03-1",
+        "diametre": "20M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-04_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 250,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-04",
+    "armature": [
+      {
+        "repere": "C04-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-04_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -50,
+    "y": -100,
+    "type_element": "colonne",
+    "element": "C-04",
+    "armature": [
+      {
+        "repere": "C04-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3500
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-05_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 300,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-05",
+    "armature": [
+      {
+        "repere": "C05-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_c 05_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": 0,
+    "y": -100,
+    "type_element": "colonne",
+    "element": "c 05",
+    "armature": [
+      {
+        "repere": "C05-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-06_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 350,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-06",
+    "armature": [
+      {
+        "repere": "C06-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-99_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": 400,
+    "y": 100,
+    "type_element": "colonne",
+    "element": "C-99",
+    "armature": [
+      {
+        "repere": "C99-1",
+        "diametre": "15M",
+        "quantite": 4,
+        "espacement_mm": null,
+        "longueur_mm": 2500
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-07_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 100,
+    "y": 200,
+    "type_element": "colonne",
+    "element": "C-07",
+    "armature": [
+      {
+        "repere": "C07-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      },
+      {
+        "repere": "C07-2",
+        "diametre": "10M",
+        "quantite": 20,
+        "espacement_mm": 300,
+        "longueur_mm": 1200
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-07_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -200,
+    "y": 0,
+    "type_element": "colonne",
+    "element": "C-07",
+    "armature": [
+      {
+        "repere": "C07-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-08_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 150,
+    "y": 200,
+    "type_element": "colonne",
+    "element": "C-08",
+    "armature": [
+      {
+        "repere": "C08-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-08_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -150,
+    "y": 0,
+    "type_element": "colonne",
+    "element": "C-08",
+    "armature": [
+      {
+        "repere": "C08-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      },
+      {
+        "repere": "C08-2",
+        "diametre": "10M",
+        "quantite": 20,
+        "espacement_mm": 300,
+        "longueur_mm": 1200
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-09_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 200,
+    "y": 200,
+    "type_element": "colonne",
+    "element": "C-09",
+    "armature": [
+      {
+        "repere": "C09-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-09_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -100,
+    "y": 0,
+    "type_element": "colonne",
+    "element": "C-09",
+    "armature": [
+      {
+        "repere": "C09-1",
+        "diametre": "25M",
+        "quantite": null,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-10_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 250,
+    "y": 200,
+    "type_element": "colonne",
+    "element": "C-10",
+    "armature": []
+  },
+  {
+    "id": "S-500_C-10_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": -50,
+    "y": 0,
+    "type_element": "colonne",
+    "element": "C-10",
+    "armature": []
+  },
+  {
+    "id": "S-500_C-11_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 300,
+    "y": 200,
+    "type_element": "colonne",
+    "element": "C-11",
+    "armature": [
+      {
+        "repere": "C11-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 3600
+      }
+    ]
+  },
+  {
+    "id": "S-500_C-11_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-500.pdf",
+    "feuillet": "S-500",
+    "page": 2,
+    "x": 0,
+    "y": 0,
+    "type_element": "colonne",
+    "element": "C-11",
+    "armature": [
+      {
+        "repere": "C11-1",
+        "diametre": "20M",
+        "quantite": 6,
+        "espacement_mm": null,
+        "longueur_mm": 3400
+      }
+    ]
+  },
+  {
+    "id": "S-600_D-01_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-600.pdf",
+    "feuillet": "S-600",
+    "page": 1,
+    "x": 100,
+    "y": 100,
+    "type_element": "dalle",
+    "element": "D-01",
+    "armature": [
+      {
+        "repere": "D01-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 200,
+        "longueur_mm": null
+      }
+    ]
+  },
+  {
+    "id": "S-600_D-01_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-600.pdf",
+    "feuillet": "S-600",
+    "page": 2,
+    "x": -200,
+    "y": -100,
+    "type_element": "dalle",
+    "element": "D-01",
+    "armature": [
+      {
+        "repere": "D01-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 250,
+        "longueur_mm": null
+      }
+    ]
+  },
+  {
+    "id": "S-600_D-02_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-600.pdf",
+    "feuillet": "S-600",
+    "page": 1,
+    "x": 200,
+    "y": 100,
+    "type_element": "dalle",
+    "element": "D-02",
+    "armature": [
+      {
+        "repere": "D02-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 200,
+        "longueur_mm": null
+      }
+    ]
+  },
+  {
+    "id": "S-600_D-02_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-600.pdf",
+    "feuillet": "S-600",
+    "page": 2,
+    "x": -100,
+    "y": -100,
+    "type_element": "dalle",
+    "element": "D-02",
+    "armature": [
+      {
+        "repere": "D02-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 200,
+        "longueur_mm": null
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-01_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 1,
+    "x": 100,
+    "y": 100,
+    "type_element": "poutre",
+    "element": "P-01",
+    "armature": [
+      {
+        "repere": "P01-1",
+        "diametre": "25M",
+        "quantite": 4,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      },
+      {
+        "repere": "P01-2",
+        "diametre": "10M",
+        "quantite": 30,
+        "espacement_mm": 200,
+        "longueur_mm": 1500
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-01_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 2,
+    "x": -200,
+    "y": -100,
+    "type_element": "poutre",
+    "element": "P-01",
+    "armature": [
+      {
+        "repere": "P01-2",
+        "diametre": "10M",
+        "quantite": 30,
+        "espacement_mm": 200,
+        "longueur_mm": 1500
+      },
+      {
+        "repere": "P01-1",
+        "diametre": "25M",
+        "quantite": 4,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-02_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 1,
+    "x": 200,
+    "y": 100,
+    "type_element": "poutre",
+    "element": "P-02",
+    "armature": [
+      {
+        "repere": "P02-1",
+        "diametre": "25M",
+        "quantite": 4,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-02_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 1,
+    "x": 200,
+    "y": 400,
+    "type_element": "poutre",
+    "element": "P-02",
+    "armature": [
+      {
+        "repere": "P02-1",
+        "diametre": "25M",
+        "quantite": 4,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-02_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 2,
+    "x": 40,
+    "y": 40,
+    "type_element": "poutre",
+    "element": "P-02",
+    "armature": [
+      {
+        "repere": "P02-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-03_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 1,
+    "x": 300,
+    "y": 100,
+    "type_element": "poutre",
+    "element": "P-03",
+    "armature": [
+      {
+        "repere": "P03-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-03_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 1,
+    "x": 300,
+    "y": 100,
+    "type_element": "poutre",
+    "element": "P-03",
+    "armature": [
+      {
+        "repere": "P03-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-300_P-03_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-300.pdf",
+    "feuillet": "S-300",
+    "page": 2,
+    "x": 140,
+    "y": 40,
+    "type_element": "poutre",
+    "element": "P-03",
+    "armature": [
+      {
+        "repere": "P03-1",
+        "diametre": "25M",
+        "quantite": 8,
+        "espacement_mm": null,
+        "longueur_mm": 6000
+      }
+    ]
+  },
+  {
+    "id": "S-400_M-01_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-400.pdf",
+    "feuillet": "S-400",
+    "page": 1,
+    "x": 100,
+    "y": 100,
+    "type_element": "mur",
+    "element": "M-01",
+    "armature": [
+      {
+        "repere": "M01-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 300,
+        "longueur_mm": 2800
+      }
+    ]
+  },
+  {
+    "id": "S-400_M-02_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-400.pdf",
+    "feuillet": "S-400",
+    "page": 1,
+    "x": 200,
+    "y": 100,
+    "type_element": "mur",
+    "element": "M-02",
+    "armature": [
+      {
+        "repere": "M02-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 300,
+        "longueur_mm": 2800
+      }
+    ]
+  },
+  {
+    "id": "S-400_M-02_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-400.pdf",
+    "feuillet": "S-400",
+    "page": 2,
+    "x": -100,
+    "y": -100,
+    "type_element": "mur",
+    "element": "M-02",
+    "armature": [
+      {
+        "repere": "M02-1",
+        "diametre": "15M",
+        "quantite": null,
+        "espacement_mm": 300,
+        "longueur_mm": 2800
+      }
+    ]
+  },
+  {
+    "id": "S-100_F-01_plan",
+    "source": "plan",
+    "fichier": "fake_plan_S-100.pdf",
+    "feuillet": "S-100",
+    "page": 1,
+    "x": 100,
+    "y": 100,
+    "type_element": "semelle",
+    "element": "F-01",
+    "armature": [
+      {
+        "repere": "F01-1",
+        "diametre": "20M",
+        "quantite": 6,
+        "espacement_mm": null,
+        "longueur_mm": 1200
+      }
+    ]
+  },
+  {
+    "id": "S-100_F-01_shop_drawing",
+    "source": "shop_drawing",
+    "fichier": "fake_shop_drawing_S-100.pdf",
+    "feuillet": "S-100",
+    "page": 2,
+    "x": -200,
+    "y": -100,
+    "type_element": "semelle",
+    "element": "F-01",
+    "armature": [
+      {
+        "repere": "F01-1",
+        "diametre": "20M",
+        "quantite": 6,
+        "espacement_mm": null,
+        "longueur_mm": 1201
+      }
+    ]
+  },
+  {
+    "id": "weird_1",
+    "source": "autre",
+    "fichier": "fake.pdf",
+    "feuillet": "S-500",
+    "page": 1,
+    "x": 0,
+    "y": 0,
+    "type_element": "colonne",
+    "element": "C-50",
+    "armature": []
+  }
+]

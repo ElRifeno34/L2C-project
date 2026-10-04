@@ -61,7 +61,7 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
         doc.build(story)
         return
 
-    # ---- 1. Summary by plan sheet -------------------------------------------
+    # Summary by plan sheet 
     story.append(Paragraph("1. Summary by Plan Sheet", styles["Heading2"]))
     story.append(Spacer(1, 5))
 
@@ -88,7 +88,7 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
     story.append(summary_table)
     story.append(Spacer(1, 18))
 
-    # ---- 2. Detailed discrepancy log, one table per sheet -------------------
+    # Detailed discrepancy log, one table per sheet 
     story.append(Paragraph("2. Detailed Discrepancy Log", styles["Heading2"]))
 
     for sheet, stats in reconciled_data.items():
@@ -112,7 +112,7 @@ def generate_pdf_report(reconciled_data: dict, output_pdf_path: str) -> None:
                 Paragraph("<br/>".join(escape(str(i)) for i in issues), small),
             ])
 
-        table = Table(rows, colWidths=[95, 70, 90, 90, 195], repeatRows=1)
+        table =Table(rows, colWidths=[90, 85, 85, 85, 195], repeatRows=1)
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
