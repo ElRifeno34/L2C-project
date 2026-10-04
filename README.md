@@ -144,3 +144,5 @@ Outputs are annex-a.json and associations.json. The latter preserves unresolved 
 Paddle benchmark outputs now retain OCR polygons and recognition scores locally. Rerun prepare_samples to include crop transforms; new Paddle results map those polygons into PDF points. This is not full-page extraction or automatic structural-element detection.
 
 Validation: five synthetic tests cover page isolation, overlapping regions, conflicting references, shared schedules and external leaders. The CLP L-13 sample additionally verifies four schedule annotations with manually confirmed marker relationships. These checks do not establish dataset-wide association accuracy.
+
+If you want to test the code use: python -m pytest tests/
