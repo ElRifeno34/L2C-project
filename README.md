@@ -226,7 +226,7 @@ Un code de sortie 2 signale les erreurs ou fichiers non classifiés; conserver r
 
 Associations automatiques : identifiant explicite dans le même segment texte, cadre de détail contenant un identifiant unique, et cas de semelles où marqueur fermé, axes de grille appariés et ligne TYPE du tableau sont tous reconnus. Les cas ambigus restent non résolus. Ces règles ne constituent pas un détecteur entraîné de tous les éléments structuraux.
 
-Les contours CAD sont reconstruits en cycles fermés, même si les tracés PDF sont séparés ou regroupés. Les lignes ouvertes ou avec embranchements sont exclues. L’ordre des axes lettre/nombre peut être inversé. Une région vérifiée remplace le contexte automatique pour les annotations qu’elle contient; elle ne constitue pas une validation de tous les éléments utilisant le même tableau. Les longueurs explicites ne sont pas propagées à la prochaine annotation et les valeurs non finies sont refusées par Pydantic.
+Les contours CAD sont reconstruits en cycles fermés, même si les tracés PDF sont séparés ou regroupés. Les lignes ouvertes ou avec embranchements sont exclues. L’ordre des axes lettre/nombre peut être inversé. Une région vérifiée remplace le contexte automatique pour les annotations qu’elle contient; elle ne constitue pas une validation de tous les éléments utilisant le même tableau. Les longueurs explicites ne sont pas propagées à la prochaine annotation. Pydantic refuse les valeurs non finies ainsi que les identifiants et références vides.
 
 Un fichier `--context` local peut préciser des régions vérifiées par l’ingénieur. Exemple synthétique :
 

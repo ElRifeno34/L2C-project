@@ -45,6 +45,13 @@ class RebarParserTests(unittest.TestCase):
             Annotation(id='x',source='plan',fichier='a.pdf',feuillet='S-500',page=1,
                        x=float('nan'),y=10,type_element='colonne',element='C-12',armature=[{}])
 
+    def test_blank_identity_cannot_become_a_comparable_element(self):
+        from pydantic import ValidationError
+        with self.assertRaises(ValidationError):
+            Annotation(id='x',source='plan',fichier='a.pdf',feuillet='S-500',page=1,
+                       x=10,y=10,type_element='colonne',element='   ',
+                       armature=[{'diametre':'25M','quantite':8}])
+
 
 class GeometryAndContextTests(unittest.TestCase):
     def test_composite_cad_path_recovers_independent_closed_outlines(self):

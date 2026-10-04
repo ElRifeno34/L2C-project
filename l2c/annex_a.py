@@ -1,6 +1,6 @@
 """Annex A records. Unknown reinforcement attributes remain null."""
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Armature(BaseModel):
@@ -24,3 +24,10 @@ class Annotation(BaseModel):
     type_element: str
     element: str
     armature: list[Armature] = Field(min_length=1)
+
+    @field_validator('id', 'fichier', 'feuillet', 'type_element', 'element')
+    @classmethod
+    def identified_reference(cls, value):
+        if not value.strip():
+            raise ValueError('Identified records require non-empty references.')
+        return value
