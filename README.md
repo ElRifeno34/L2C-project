@@ -1,5 +1,8 @@
 # L2C — Du plan aux dessins d’atelier
 
+> État de remise : prototype local exécutable, 41 tests validés, notebook exécuté avec et sans ML, JSON/PDF des quatre projets générés. La couverture reste partielle. Voir [DEMO.md](DEMO.md) pour les commandes, la démonstration et les limites mesurées.
+
+
 ## Idée du projet
 
 Un vérificateur d’armatures qui compare les plans de construction aux dessins d’atelier et relie chaque écart à sa preuve dans les documents.
